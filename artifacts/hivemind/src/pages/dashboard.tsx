@@ -38,6 +38,7 @@ export default function Dashboard() {
 
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("1w");
+  const priceList = Array.isArray(prices) ? prices : [];
   const predictionList = Array.isArray(predictions) ? predictions : [];
 
   const handleGenerate = () => {
@@ -115,7 +116,7 @@ export default function Dashboard() {
                 <SelectValue placeholder="Symbol" />
               </SelectTrigger>
               <SelectContent>
-                {prices?.map((p) => (
+                {priceList.map((p) => (
                   <SelectItem key={p.symbol} value={p.symbol}>{p.symbol}</SelectItem>
                 ))}
               </SelectContent>
@@ -150,7 +151,7 @@ export default function Dashboard() {
           <div className="text-sm text-muted-foreground">Loading markets...</div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {prices?.map((price) => (
+            {priceList.map((price) => (
               <Card key={price.symbol} className="overflow-hidden hover:border-primary/40 transition-colors">
                 <CardContent className="p-3">
                   <div className="flex justify-between items-start mb-1">
