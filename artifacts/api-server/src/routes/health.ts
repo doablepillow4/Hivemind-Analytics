@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { getSchedulerStatus } from "../lib/scheduler";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ router.get("/healthz", async (_req, res): Promise<void> => {
     db: dbStatus,
     uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
+    scheduler: getSchedulerStatus(),
   });
 });
 

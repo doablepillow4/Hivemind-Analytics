@@ -50,6 +50,8 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 - **API proxy via Vite dev server** — frontend proxies `/api` → `http://localhost:8080` so no CORS issues in dev
 - **Public APIs only** — market data (CoinGecko, Yahoo Finance), news (RSS feeds), and Polymarket are all public; no API keys required
 - **Drizzle push (not migrations)** — schema changes are applied via `drizzle-kit push` rather than migration files
+- **Typed HTTP errors** — `HttpError` class (`lib/http-error.ts`) with static helpers; Express error handler returns status-aware JSON
+- **Background scheduler** — `lib/scheduler.ts` runs `runTrainingCycle()` every 15 min (configurable via `SCHEDULER_INTERVAL_MS`); also called directly by `POST /lattice/train`. Starts on server boot, stops cleanly on SIGTERM/SIGINT
 
 ## Product
 
@@ -58,13 +60,16 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 - **HPL-HPA v3** — persistent belief state machine (opt-in via `useV3: true`); tracks delta, momentum, acceleration, and stability across runs per symbol; stored in `belief_states` (latest) + `belief_history` (append-only log)
 - **Simulator** — portfolio scenario simulation tool
 - **Geopolitics** — dedicated geopolitical events and market impact view
+- **Auto-resolution** — expired predictions are resolved against real prices on a 15-minute schedule; agent Brier scores and reputation update automatically
 
-### Key API endpoints (Lattice)
+### Key API endpoints
 
 | Method | Path                                  | Notes                                                                  |
 | ------ | ------------------------------------- | ---------------------------------------------------------------------- |
 | `POST` | `/api/lattice/run`                    | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response |
+| `POST` | `/api/lattice/train`                  | Manually trigger a training cycle (same logic as the scheduler)        |
 | `GET`  | `/api/lattice/belief-history/:symbol` | `?limit=N` (default 50, max 200) — chronological conviction history    |
+| `GET`  | `/api/healthz`                        | Returns `{ status, db, uptime, timestamp, scheduler }`                 |
 
 ## User preferences
 
@@ -76,6 +81,7 @@ _Populate as you build_
 - `api-server/src/index.ts` requires `PORT` env var — missing it throws immediately
 - The mockup-sandbox is a separate Vite app for component previewing; it is not part of the main app
 - `minimumReleaseAge: 1440` in pnpm-workspace.yaml blocks packages < 1 day old (except `@replit/*`)
+- Scheduler uses `timer.unref()` so it never prevents the process from exiting; set `SCHEDULER_INTERVAL_MS` (ms) to override the 15-minute default
 
 ## Pointers
 
