@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import {
   useRunLattice, useGetLatticeAgents, getGetLatticeAgentsQueryKey,
   useGetMarketPrices, getGetMarketPricesQueryKey, useRunLatticeTraining,
+  useGetBeliefHistory, getGetBeliefHistoryQueryKey,
 } from "@workspace/api-client-react";
-import type { LatticeResult, BeliefToken } from "@workspace/api-client-react";
+import type { LatticeResult, BeliefToken, BeliefHistoryItem } from "@workspace/api-client-react";
 import { TickerCombobox } from "@/components/ticker-combobox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Network, Zap, TrendingUp, TrendingDown, Minus, AlertTriangle, Shield,
   ThumbsUp, MessageSquare, Send, ChevronDown, ChevronUp, Activity,
-  Globe, RefreshCw, CheckCircle2, BarChart3,
+  Globe, RefreshCw, CheckCircle2, BarChart3, Flame,
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
+  ComposedChart, LineChart, Line, Area, Bar, Cell,
+  XAxis, YAxis, CartesianGrid, ResponsiveContainer,
   ReferenceLine, Tooltip,
 } from "recharts";
 import { useAppStore } from "@/store/app-store";
@@ -324,6 +326,226 @@ function ConvergenceChart({ tokens }: { tokens: BeliefToken[] }) {
           <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-primary" style={{ boxShadow: "0 0 4px rgba(0,212,255,0.6)" }} /><span className="text-[9px] font-mono text-muted-foreground">Consensus</span></div>
           <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 bg-white/20" /><span className="text-[9px] font-mono text-muted-foreground">Agents</span></div>
           <div className="flex items-center gap-1.5"><div className="w-4 h-0.5 border-t border-dashed border-white/20" /><span className="text-[9px] font-mono text-muted-foreground">50% neutral</span></div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Conviction Momentum Chart ───────────────────────────────────────────────
+
+const SHIFT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  strengthening: { label: "STRENGTHENING", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/25" },
+  weakening:     { label: "WEAKENING",     color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/25" },
+  reversing:     { label: "REVERSING",     color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/25" },
+  stable:        { label: "STABLE",        color: "text-primary",     bg: "bg-primary/10",     border: "border-primary/25" },
+};
+
+function ConvictionMomentumChart({ symbol, latestRunId }: { symbol: string; latestRunId?: string }) {
+  const { data: history } = useGetBeliefHistory(symbol, undefined, {
+    query: {
+      queryKey: [...getGetBeliefHistoryQueryKey(symbol), latestRunId],
+      enabled: !!symbol,
+      staleTime: 0,
+    },
+  });
+
+  if (!history || history.length < 2) return null;
+
+  const latest = history[history.length - 1];
+  const shift = SHIFT_CONFIG[latest.convictionShift] ?? SHIFT_CONFIG.stable;
+
+  const chartData = history.map((h: BeliefHistoryItem) => ({
+    label: `S${h.sessionCount}`,
+    probability: parseFloat(h.finalProbability.toFixed(3)),
+    delta: parseFloat(h.delta.toFixed(4)),
+    momentum: parseFloat(h.momentum.toFixed(4)),
+    stability: parseFloat(h.stability.toFixed(3)),
+    direction: h.finalDirection,
+    shift: h.convictionShift,
+  }));
+
+  const PROB_GRADIENT_ID = "beliefProbGrad";
+
+  return (
+    <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
+      <div className="h-0.5 w-full bg-gradient-to-r from-primary/70 via-purple-500/30 to-transparent" />
+      <CardContent className="p-4">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <Flame className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-mono font-700 text-white uppercase tracking-widest">Conviction Momentum</span>
+              <span className="text-[9px] font-mono text-muted-foreground">{symbol} · {history.length} v3 sessions</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 font-mono">Belief probability + delta shift + momentum across HPL-HPA v3 runs</p>
+          </div>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-full border text-[9px] font-mono font-600 ${shift.color} ${shift.bg} ${shift.border}`}>
+            {shift.label}
+          </div>
+        </div>
+
+        {/* Main ComposedChart */}
+        <div className="h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 6, right: 32, bottom: 4, left: 0 }}>
+              <defs>
+                <linearGradient id={PROB_GRADIENT_ID} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#00d4ff" stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
+              <XAxis
+                dataKey="label"
+                stroke="#ffffff30"
+                fontSize={9}
+                fontFamily="JetBrains Mono"
+                tick={{ fill: "#ffffff50" }}
+              />
+              <YAxis
+                yAxisId="prob"
+                domain={[0, 1]}
+                stroke="#ffffff20"
+                fontSize={9}
+                fontFamily="JetBrains Mono"
+                tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
+                width={34}
+                tick={{ fill: "#ffffff40" }}
+              />
+              <YAxis
+                yAxisId="delta"
+                orientation="right"
+                domain={[-0.3, 0.3]}
+                stroke="#ffffff10"
+                fontSize={8}
+                fontFamily="JetBrains Mono"
+                tickFormatter={(v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(0)}`}
+                width={26}
+                tick={{ fill: "#ffffff30" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "hsl(222,32%,8%)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 8,
+                  fontFamily: "JetBrains Mono",
+                  fontSize: 11,
+                }}
+                formatter={(v: number, name: string) => {
+                  if (name === "probability") return [`${(v * 100).toFixed(1)}%`, "Probability"];
+                  if (name === "delta") return [`${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`, "Δ Delta"];
+                  if (name === "momentum") return [`${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`, "Momentum"];
+                  return [v, name];
+                }}
+                labelStyle={{ color: "#ffffff60", marginBottom: 4 }}
+              />
+              {/* Conviction threshold zones */}
+              <ReferenceLine yAxisId="prob" y={0.54} stroke="rgba(52,211,153,0.15)" strokeDasharray="3 3" />
+              <ReferenceLine yAxisId="prob" y={0.5}  stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
+              <ReferenceLine yAxisId="prob" y={0.46} stroke="rgba(248,113,113,0.15)" strokeDasharray="3 3" />
+              {/* Zero line for delta axis */}
+              <ReferenceLine yAxisId="delta" y={0} stroke="rgba(255,255,255,0.06)" />
+              {/* Delta bars */}
+              <Bar yAxisId="delta" dataKey="delta" barSize={6} radius={[2, 2, 0, 0]} isAnimationActive={false}>
+                {chartData.map((entry, i) => (
+                  <Cell key={i} fill={entry.delta >= 0 ? "rgba(52,211,153,0.55)" : "rgba(248,113,113,0.55)"} />
+                ))}
+              </Bar>
+              {/* Probability area */}
+              <Area
+                yAxisId="prob"
+                type="monotone"
+                dataKey="probability"
+                stroke="#00d4ff"
+                strokeWidth={2.5}
+                fill={`url(#${PROB_GRADIENT_ID})`}
+                dot={{ fill: "#00d4ff", r: 3, strokeWidth: 0 }}
+                activeDot={{ fill: "#00d4ff", r: 5, strokeWidth: 0 }}
+                isAnimationActive={false}
+                style={{ filter: "drop-shadow(0 0 6px rgba(0,212,255,0.35))" }}
+              />
+              {/* Momentum dashed line */}
+              <Line
+                yAxisId="prob"
+                type="monotone"
+                dataKey="momentum"
+                stroke="#a855f7"
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                dot={false}
+                activeDot={{ fill: "#a855f7", r: 3 }}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mt-1 mb-3 justify-center">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-0.5 bg-primary" style={{ boxShadow: "0 0 4px rgba(0,212,255,0.6)" }} />
+            <span className="text-[9px] font-mono text-muted-foreground">Probability</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-px border-t-2 border-dashed border-purple-500" />
+            <span className="text-[9px] font-mono text-muted-foreground">Momentum</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex gap-0.5">
+              <div className="w-1.5 h-3 rounded-sm bg-emerald-400/55" />
+              <div className="w-1.5 h-3 rounded-sm bg-red-400/55" />
+            </div>
+            <span className="text-[9px] font-mono text-muted-foreground">Δ Delta</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-white/20 border border-white/10" />
+            <div className="w-px h-3 bg-white/10" />
+            <div className="w-px h-3 bg-white/10" />
+            <span className="text-[9px] font-mono text-muted-foreground ml-0.5">0.5 neutral</span>
+          </div>
+        </div>
+
+        {/* Stability bar */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Belief Stability</span>
+            <span className="text-[10px] font-mono text-white">{(latest.stability * 100).toFixed(0)}%</span>
+          </div>
+          <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${latest.stability * 100}%`, boxShadow: "0 0 6px rgba(0,212,255,0.5)" }}
+            />
+          </div>
+        </div>
+
+        {/* Metrics grid */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            {
+              label: "Δ Prob",
+              value: `${latest.delta >= 0 ? "+" : ""}${(latest.delta * 100).toFixed(1)}%`,
+              color: latest.delta > 0 ? "text-emerald-400" : latest.delta < 0 ? "text-red-400" : "text-muted-foreground",
+            },
+            {
+              label: "Momentum",
+              value: `${latest.momentum >= 0 ? "+" : ""}${(latest.momentum * 100).toFixed(1)}%`,
+              color: latest.momentum > 0 ? "text-emerald-400" : latest.momentum < 0 ? "text-red-400" : "text-muted-foreground",
+            },
+            {
+              label: "Accel",
+              value: `${latest.acceleration >= 0 ? "+" : ""}${(latest.acceleration * 100).toFixed(1)}%`,
+              color: latest.acceleration > 0 ? "text-emerald-400" : latest.acceleration < 0 ? "text-red-400" : "text-muted-foreground",
+            },
+            { label: "Sessions", value: String(latest.sessionCount), color: "text-white" },
+          ].map((m) => (
+            <div key={m.label} className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2 text-center">
+              <div className={`text-[13px] font-mono font-700 ${m.color}`}>{m.value}</div>
+              <div className="text-[9px] font-mono text-muted-foreground mt-0.5">{m.label}</div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -656,7 +878,7 @@ export default function Lattice() {
   function handleRun() {
     if (!symbol) return;
     resetUpvotes();
-    runLattice.mutate({ data: { symbol, timeframe } });
+    runLattice.mutate({ data: { symbol, timeframe, useV3: true } });
   }
 
   const DEBATE_AGENTS = ["hypothesis_momentum","hypothesis_meanrevert","hypothesis_volregime","hypothesis_hive","critique_devil","critique_tailrisk"];
@@ -668,7 +890,7 @@ export default function Lattice() {
         <h1 className="font-display text-[22px] font-700 text-white tracking-tight leading-none">Predictive Lattice</h1>
         <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5 font-mono">
           <Network className="w-3 h-3 text-primary" />
-          HPL-HPA v2 · 6-agent debate · Polymarket intel · Self-improving
+          HPL-HPA v3 · 6-agent debate · Polymarket intel · Persistent belief state
         </p>
       </div>
 
@@ -725,6 +947,8 @@ export default function Lattice() {
           Lattice run failed. Check API server and try again.
         </div>
       )}
+
+      {symbol && <ConvictionMomentumChart symbol={symbol} latestRunId={result?.runId} />}
 
       {result && <DebateView result={result} upvotes={agentUpvotes} onUpvote={upvoteAgent} />}
 

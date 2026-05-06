@@ -356,3 +356,43 @@ export type GetNewsParams = {
 export type GetMarketRegimeParams = {
   symbol: string;
 };
+
+export type BeliefHistoryItemFinalDirection =
+  (typeof BeliefHistoryItemFinalDirection)[keyof typeof BeliefHistoryItemFinalDirection];
+
+export const BeliefHistoryItemFinalDirection = {
+  bullish: "bullish",
+  bearish: "bearish",
+  neutral: "neutral",
+} as const;
+
+export type BeliefHistoryItemConvictionShift =
+  (typeof BeliefHistoryItemConvictionShift)[keyof typeof BeliefHistoryItemConvictionShift];
+
+export const BeliefHistoryItemConvictionShift = {
+  strengthening: "strengthening",
+  weakening: "weakening",
+  reversing: "reversing",
+  stable: "stable",
+} as const;
+
+export interface BeliefHistoryItem {
+  runId: string;
+  symbol: string;
+  sessionCount: number;
+  finalProbability: number;
+  finalDirection: BeliefHistoryItemFinalDirection;
+  hivemindScore: number;
+  regime: string;
+  delta: number;
+  momentum: number;
+  acceleration: number;
+  stability: number;
+  convictionShift: BeliefHistoryItemConvictionShift;
+  previousRunId?: string | null;
+  createdAt: string;
+}
+
+export type GetBeliefHistoryParams = {
+  limit?: number;
+};

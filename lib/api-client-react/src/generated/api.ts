@@ -18,8 +18,10 @@ import type {
 
 import type {
   AgentState,
+  BeliefHistoryItem,
   CreatePredictionBody,
   ErrorResponse,
+  GetBeliefHistoryParams,
   GetMarketHistoryParams,
   GetMarketRegimeParams,
   GetNewsParams,
@@ -1328,4 +1330,73 @@ export const useRunLatticeTraining = <
   TContext
 > => {
   return useMutation(getRunLatticeTrainingMutationOptions(options));
+};
+
+// ─── Belief History ───────────────────────────────────────────────────────────
+
+/**
+ * @summary Get conviction momentum history for a symbol (v3 runs only)
+ */
+export const getBeliefHistoryUrl = (symbol: string) => {
+  return `/api/lattice/belief-history/${symbol}`;
+};
+
+export const getBeliefHistory = async (
+  symbol: string,
+  params?: GetBeliefHistoryParams,
+  options?: RequestInit,
+): Promise<BeliefHistoryItem[]> => {
+  let url = getBeliefHistoryUrl(symbol);
+  if (params?.limit != null) url += `?limit=${params.limit}`;
+  return customFetch<BeliefHistoryItem[]>(url, { ...options, method: "GET" });
+};
+
+export const getGetBeliefHistoryQueryKey = (
+  symbol: string,
+  params?: GetBeliefHistoryParams,
+) => {
+  return [`/api/lattice/belief-history/${symbol}`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetBeliefHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBeliefHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  symbol: string,
+  params?: GetBeliefHistoryParams,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetBeliefHistoryQueryKey(symbol, params);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBeliefHistory>>> = ({ signal }) =>
+    getBeliefHistory(symbol, params, { signal, ...requestOptions });
+  return { queryKey, queryFn, enabled: !!symbol, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBeliefHistory>>,
+    TError,
+    TData
+  >;
+};
+
+export type GetBeliefHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getBeliefHistory>>>;
+export type GetBeliefHistoryQueryError = ErrorType<unknown>;
+
+export const useGetBeliefHistory = <
+  TData = Awaited<ReturnType<typeof getBeliefHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  symbol: string,
+  params?: GetBeliefHistoryParams,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const queryOptions = getGetBeliefHistoryQueryOptions(symbol, params, options);
+  const query = useQuery(queryOptions);
+  // @ts-expect-error queryKey is added
+  query.queryKey = queryOptions.queryKey;
+  return query as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 };
