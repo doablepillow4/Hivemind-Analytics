@@ -54,8 +54,16 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 
 - **Dashboard** — live crypto + equity prices with sparklines, geopolitical news feed, Polymarket prediction markets
 - **Lattice** — multi-agent debate engine that generates buy/sell/hold predictions with confidence scores, SHAP attribution, and causal narratives
+- **HPL-HPA v3** — persistent belief state machine (opt-in via `useV3: true`); tracks delta, momentum, acceleration, and stability across runs per symbol; stored in `belief_states` (latest) + `belief_history` (append-only log)
 - **Simulator** — portfolio scenario simulation tool
 - **Geopolitics** — dedicated geopolitical events and market impact view
+
+### Key API endpoints (Lattice)
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/api/lattice/run` | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response |
+| `GET` | `/api/lattice/belief-history/:symbol` | `?limit=N` (default 50, max 200) — chronological conviction history |
 
 ## User preferences
 

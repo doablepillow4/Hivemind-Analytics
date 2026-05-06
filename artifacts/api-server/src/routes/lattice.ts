@@ -8,8 +8,12 @@ import {
   LatticeChallengeBody,
   LatticeChallengeResponse,
   RunLatticeTrainingResponse,
+  GetBeliefHistoryParams,
+  GetBeliefHistoryQueryParams,
+  GetBeliefHistoryResponse,
 } from "@workspace/api-zod";
 import { runLattice, getAllAgentStates, getStaticAgentStates } from "../lib/lattice/lattice-engine";
+import { queryBeliefHistory } from "../lib/lattice/belief-state";
 import { detectRegime, describeRegime } from "../lib/lattice/regime-detector";
 import { fetchStockHistory, fetchCryptoHistory, fetchStockPrice, fetchCryptoPrices, CRYPTO_ID_MAP } from "../lib/market-data";
 import { resolveExpiredPredictions } from "../lib/predictions-engine";
@@ -318,6 +322,22 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Lattice training failed");
     res.status(500).json({ error: "Training cycle failed" });
+  }
+});
+
+// ─── Belief History ───────────────────────────────────────────────────────────
+
+router.get("/lattice/belief-history/:symbol", async (req, res): Promise<void> => {
+  try {
+    const { symbol } = GetBeliefHistoryParams.parse(req.params);
+    const { limit } = GetBeliefHistoryQueryParams.parse(req.query);
+
+    const rows = await queryBeliefHistory(symbol.toUpperCase(), limit);
+    const validated = GetBeliefHistoryResponse.parse(rows);
+    res.json(validated);
+  } catch (err) {
+    logger.error({ err }, "Failed to fetch belief history");
+    res.status(500).json({ error: "Failed to fetch belief history" });
   }
 });
 

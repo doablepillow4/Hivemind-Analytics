@@ -1,10 +1,10 @@
 import { db } from "@workspace/db";
-import { beliefStatesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { beliefStatesTable, beliefHistoryTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
 import type { BeliefState, BeliefDynamics, BeliefToken, Direction, Regime } from "./types";
 import { logger } from "../logger";
 
-// ─── Persistence ─────────────────────────────────────────────────────────────
+// ─── Persistence: current state (one row per symbol, upserted) ───────────────
 
 export async function loadBeliefState(symbol: string): Promise<BeliefState | null> {
   try {
@@ -70,14 +70,80 @@ export async function saveBeliefState(state: BeliefState): Promise<void> {
   }
 }
 
+// ─── Persistence: history (append-only, one row per v3 run) ──────────────────
+
+export async function appendBeliefHistory(opts: {
+  runId: string;
+  symbol: string;
+  dynamics: BeliefDynamics;
+  finalProbability: number;
+  finalDirection: Direction;
+  hivemindScore: number;
+  regime: Regime;
+}): Promise<void> {
+  try {
+    await db.insert(beliefHistoryTable).values({
+      id: opts.runId,
+      symbol: opts.symbol,
+      sessionCount: opts.dynamics.sessionCount,
+      finalProbability: parseFloat(opts.finalProbability.toFixed(6)),
+      finalDirection: opts.finalDirection,
+      hivemindScore: parseFloat(opts.hivemindScore.toFixed(4)),
+      regime: opts.regime,
+      delta: parseFloat(opts.dynamics.delta.toFixed(6)),
+      momentum: parseFloat(opts.dynamics.momentum.toFixed(6)),
+      acceleration: parseFloat(opts.dynamics.acceleration.toFixed(6)),
+      stability: parseFloat(opts.dynamics.stability.toFixed(4)),
+      convictionShift: opts.dynamics.convictionShift,
+      previousRunId: opts.dynamics.previousRunId ?? null,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    logger.warn({ err, symbol: opts.symbol, runId: opts.runId }, "Failed to append belief history");
+  }
+}
+
+export async function queryBeliefHistory(
+  symbol: string,
+  limit: number
+): Promise<BeliefDynamics & {
+  runId: string;
+  symbol: string;
+  finalProbability: number;
+  finalDirection: Direction;
+  hivemindScore: number;
+  regime: Regime;
+  createdAt: string;
+}[]> {
+  const rows = await db
+    .select()
+    .from(beliefHistoryTable)
+    .where(eq(beliefHistoryTable.symbol, symbol))
+    .orderBy(desc(beliefHistoryTable.createdAt))
+    .limit(limit);
+
+  // Return in chronological order (oldest first) for chart rendering
+  return rows.reverse().map((r) => ({
+    runId: r.id,
+    symbol: r.symbol,
+    sessionCount: r.sessionCount,
+    finalProbability: r.finalProbability,
+    finalDirection: r.finalDirection as Direction,
+    hivemindScore: r.hivemindScore,
+    regime: r.regime as Regime,
+    delta: r.delta,
+    momentum: r.momentum,
+    acceleration: r.acceleration,
+    stability: r.stability,
+    convictionShift: r.convictionShift as BeliefDynamics["convictionShift"],
+    previousRunId: r.previousRunId ?? null,
+    previousDirection: null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
 // ─── Delta Computation ────────────────────────────────────────────────────────
 
-/**
- * Pure function. Given the current run's outputs and the previous BeliefState,
- * computes BeliefDynamics and the new BeliefState to persist.
- *
- * Runs AFTER all agents have fired so we have the full token list.
- */
 export function computeBeliefDynamics(opts: {
   symbol: string;
   runId: string;
@@ -109,7 +175,6 @@ export function computeBeliefDynamics(opts: {
   const variance = deltaHistory.reduce((s, d) => s + Math.pow(d - meanDelta, 2), 0) / deltaHistory.length;
   const stability = parseFloat(Math.max(0, 1 - Math.min(1, Math.sqrt(variance) * 15)).toFixed(4));
 
-  // Conviction shift classification
   let convictionShift: BeliefDynamics["convictionShift"] = "stable";
   if (prev) {
     const prevDir = prev.finalDirection;
@@ -127,7 +192,6 @@ export function computeBeliefDynamics(opts: {
     }
   }
 
-  // Build per-agent probability snapshot from this run
   const agentProbabilities: Record<string, number> = {};
   for (const t of allTokens) {
     agentProbabilities[t.agentType] = t.probability;
@@ -161,10 +225,6 @@ export function computeBeliefDynamics(opts: {
   return { dynamics, newState };
 }
 
-/**
- * Enriches tokens in-place with per-agent delta fields using the previous
- * belief state's agent probability snapshot.
- */
 export function enrichTokensWithDeltas(
   tokens: BeliefToken[],
   prev: BeliefState,
@@ -175,7 +235,6 @@ export function enrichTokensWithDeltas(
     if (prevProb !== undefined) {
       token.delta = parseFloat((token.probability - prevProb).toFixed(6));
     }
-    // Momentum / acceleration / stability are lattice-level, shared across tokens
     token.momentum = dynamics.momentum;
     token.acceleration = dynamics.acceleration;
     token.stability = dynamics.stability;

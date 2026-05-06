@@ -15,7 +15,7 @@ import {
 import { runDevilsAdvocate, runTailRiskAgent } from "./critique-agents";
 import { synthesize } from "./synthesis-agent";
 import { runMetaAgent } from "./meta-agent";
-import { loadBeliefState, saveBeliefState, computeBeliefDynamics, enrichTokensWithDeltas } from "./belief-state";
+import { loadBeliefState, saveBeliefState, appendBeliefHistory, computeBeliefDynamics, enrichTokensWithDeltas } from "./belief-state";
 import {
   fetchStockHistory,
   fetchCryptoHistory,
@@ -239,6 +239,15 @@ export async function runLattice(
       }
 
       await saveBeliefState(newState);
+      await appendBeliefHistory({
+        runId,
+        symbol,
+        dynamics,
+        finalProbability: meta.token.probability,
+        finalDirection: meta.finalPrediction.direction,
+        hivemindScore: meta.finalPrediction.hivemindScore,
+        regime: regime.regime,
+      });
       beliefDynamics = dynamics;
 
       logger.info({

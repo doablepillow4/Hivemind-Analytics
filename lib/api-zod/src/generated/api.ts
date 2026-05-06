@@ -352,6 +352,38 @@ export const RunLatticeResponse = zod.object({
 });
 
 /**
+ * @summary Get conviction momentum history for a symbol (v3 runs only)
+ */
+export const GetBeliefHistoryParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const getBeliefHistoryQueryLimitDefault = 50;
+
+export const GetBeliefHistoryQueryParams = zod.object({
+  limit: zod.coerce.number().min(1).max(200).default(getBeliefHistoryQueryLimitDefault),
+});
+
+export const GetBeliefHistoryResponseItem = zod.object({
+  runId: zod.string(),
+  symbol: zod.string(),
+  sessionCount: zod.number(),
+  finalProbability: zod.number(),
+  finalDirection: zod.enum(["bullish", "bearish", "neutral"]),
+  hivemindScore: zod.number(),
+  regime: zod.enum(["calm", "volatile", "crisis"]),
+  delta: zod.number(),
+  momentum: zod.number(),
+  acceleration: zod.number(),
+  stability: zod.number(),
+  convictionShift: zod.enum(["strengthening", "weakening", "reversing", "stable"]),
+  previousRunId: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+export const GetBeliefHistoryResponse = zod.array(GetBeliefHistoryResponseItem);
+
+/**
  * @summary Challenge a lattice agent with a new argument
  */
 export const LatticeChallengeBody = zod.object({

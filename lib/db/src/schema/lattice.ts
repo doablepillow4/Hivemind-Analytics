@@ -1,4 +1,4 @@
-import { pgTable, text, real, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, real, integer, timestamp, index } from "drizzle-orm/pg-core";
 
 export const latticeRunsTable = pgTable("lattice_runs", {
   id: text("id").primaryKey(),
@@ -30,6 +30,27 @@ export const agentStatesTable = pgTable("agent_states", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const beliefHistoryTable = pgTable(
+  "belief_history",
+  {
+    id: text("id").primaryKey(),
+    symbol: text("symbol").notNull(),
+    sessionCount: integer("session_count").notNull(),
+    finalProbability: real("final_probability").notNull(),
+    finalDirection: text("final_direction").notNull(),
+    hivemindScore: real("hivemind_score").notNull(),
+    regime: text("regime").notNull(),
+    delta: real("delta").notNull().default(0),
+    momentum: real("momentum").notNull().default(0),
+    acceleration: real("acceleration").notNull().default(0),
+    stability: real("stability").notNull().default(1),
+    convictionShift: text("conviction_shift").notNull().default("stable"),
+    previousRunId: text("previous_run_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("belief_history_symbol_idx").on(table.symbol)]
+);
+
 export const beliefStatesTable = pgTable("belief_states", {
   symbol: text("symbol").primaryKey(),
   runId: text("run_id").notNull(),
@@ -48,3 +69,4 @@ export const beliefStatesTable = pgTable("belief_states", {
 export type LatticeRun = typeof latticeRunsTable.$inferSelect;
 export type AgentStateRow = typeof agentStatesTable.$inferSelect;
 export type BeliefStateRow = typeof beliefStatesTable.$inferSelect;
+export type BeliefHistoryRow = typeof beliefHistoryTable.$inferSelect;
