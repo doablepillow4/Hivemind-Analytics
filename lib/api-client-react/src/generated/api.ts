@@ -24,6 +24,8 @@ import type {
   GetNewsParams,
   GetPolymarketMarketsParams,
   HealthStatus,
+  LatticeChallengeBody,
+  LatticeChallengeResponse,
   LatticeResult,
   MarketHistory,
   MarketPrice,
@@ -901,6 +903,92 @@ export const useRunLattice = <
   TContext
 > => {
   return useMutation(getRunLatticeMutationOptions(options));
+};
+
+/**
+ * @summary Challenge a lattice agent with a new argument
+ */
+export const getLatticeChallengeUrl = () => {
+  return `/api/lattice/challenge`;
+};
+
+export const latticeChallenge = async (
+  latticeChallengeBody: LatticeChallengeBody,
+  options?: RequestInit,
+): Promise<LatticeChallengeResponse> => {
+  return customFetch<LatticeChallengeResponse>(getLatticeChallengeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(latticeChallengeBody),
+  });
+};
+
+export const getLatticeChallengeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof latticeChallenge>>,
+    TError,
+    { data: BodyType<LatticeChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof latticeChallenge>>,
+  TError,
+  { data: BodyType<LatticeChallengeBody> },
+  TContext
+> => {
+  const mutationKey = ["latticeChallenge"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof latticeChallenge>>,
+    { data: BodyType<LatticeChallengeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return latticeChallenge(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LatticeChallengeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof latticeChallenge>>
+>;
+export type LatticeChallengeMutationBody = BodyType<LatticeChallengeBody>;
+export type LatticeChallengeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Challenge a lattice agent with a new argument
+ */
+export const useLatticeChallenge = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof latticeChallenge>>,
+    TError,
+    { data: BodyType<LatticeChallengeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof latticeChallenge>>,
+  TError,
+  { data: BodyType<LatticeChallengeBody> },
+  TContext
+> => {
+  return useMutation(getLatticeChallengeMutationOptions(options));
 };
 
 /**

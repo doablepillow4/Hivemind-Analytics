@@ -201,6 +201,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/LatticeResult"
 
+  /lattice/challenge:
+    post:
+      operationId: latticeChallenge
+      tags: [lattice]
+      summary: Challenge a lattice agent with a new argument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LatticeChallengeBody"
+      responses:
+        "200":
+          description: Agent response and updated probability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatticeChallengeResponse"
+
   /lattice/agents:
     get:
       operationId: getLatticeAgents
@@ -621,6 +640,32 @@ components:
         isBreaking:
           type: boolean
       required: [id, title, description, url, source, publishedAt, sentiment, category, isBreaking]
+
+    LatticeChallengeBody:
+      type: object
+      properties:
+        agentType:
+          type: string
+        challenge:
+          type: string
+        symbol:
+          type: string
+        currentProbability:
+          type: number
+      required: [agentType, challenge, symbol, currentProbability]
+
+    LatticeChallengeResponse:
+      type: object
+      properties:
+        agentType:
+          type: string
+        response:
+          type: string
+        adjustment:
+          type: number
+        newProbability:
+          type: number
+      required: [agentType, response, adjustment, newProbability]
 
     RegimeStatus:
       type: object

@@ -254,6 +254,20 @@ export interface NewsItem {
   isBreaking: boolean;
 }
 
+export interface LatticeChallengeBody {
+  agentType: string;
+  challenge: string;
+  symbol: string;
+  currentProbability: number;
+}
+
+export interface LatticeChallengeResponse {
+  agentType: string;
+  response: string;
+  adjustment: number;
+  newProbability: number;
+}
+
 export type RegimeStatusRegime =
   (typeof RegimeStatusRegime)[keyof typeof RegimeStatusRegime];
 
