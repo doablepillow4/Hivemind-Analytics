@@ -1,6 +1,6 @@
 # Hivemind Predictor
 
-A premium dark-themed predictive analytics web app with live market prices, AI confidence-scored predictions, Monte Carlo event simulation, and Polymarket geopolitics intelligence.
+A premium dark-themed predictive analytics web app with live market prices, AI confidence-scored predictions, Monte Carlo event simulation, Polymarket geopolitics intelligence, and the Hivemind Predictive Lattice (HPL-HPA v2) multi-agent AI engine.
 
 ## Run & Operate
 
@@ -24,13 +24,14 @@ A premium dark-themed predictive analytics web app with live market prices, AI c
 
 ## Where things live
 
-- `lib/db/src/schema/predictions.ts` — DB schema (source of truth)
+- `lib/db/src/schema/predictions.ts` — predictions DB schema
+- `lib/db/src/schema/lattice.ts` — HPL DB schema (lattice_runs, agent_states)
 - `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth for routes)
 - `lib/api-client-react/src/generated/` — Orval-generated React Query hooks + types
 - `lib/api-zod/src/generated/` — Orval-generated Zod validation schemas
-- `artifacts/api-server/src/routes/` — Express route handlers
-- `artifacts/api-server/src/lib/` — market-data.ts, predictions-engine.ts, logger.ts
-- `artifacts/hivemind/src/pages/` — Dashboard, Simulator, Geopolitics pages
+- `artifacts/api-server/src/routes/` — Express route handlers (lattice.ts, predictions.ts, etc.)
+- `artifacts/api-server/src/lib/lattice/` — full HPL engine (9 files)
+- `artifacts/hivemind/src/pages/` — Dashboard, Lattice, Simulator, Geopolitics pages
 
 ## Architecture decisions
 
@@ -39,12 +40,14 @@ A premium dark-themed predictive analytics web app with live market prices, AI c
 - All external API calls (Yahoo Finance, CoinGecko, Polymarket) have fallback data on failure
 - Self-improving prediction loop: expired predictions are auto-resolved against real prices; past accuracy boosts future confidence scores
 - `isNull()` (not `eq(col, null)`) for Drizzle NULL checks — TS enforces this
+- HPL engine is stateless per-run; agent reputation persists to `agent_states` table
 
 ## Product
 
 - **Dashboard**: Live price cards (stocks + crypto) with sparklines, Hivemind model accuracy stats, latest predictions with confidence bars and signal breakdowns, one-click "Predict" for any symbol
-- **Event Simulator**: Monte Carlo simulation with sliders (volatility, event impact, time horizon, simulations count) → fan chart of price percentile bands (p10–p90) + probability distribution
-- **Geopolitics**: Polymarket prediction market odds cards filtered by category (politics, crypto, sports, etc.) with probability bars
+- **Lattice (HPL-HPA v2)**: Multi-agent AI engine — 4 hypothesis agents (Momentum, Mean Reversion, Vol-Regime, Hive Wisdom), 2 critique rounds (Devil's Advocate + Tail Risk), Synthesis (Bayesian fusion + Platt scaling), Meta (regime calibration). Outputs: Belief Token DAG (9 nodes), SHAP breakdown (Hive/AI/Geo %), causal narrative, Hivemind Score 0-100, minority report, debate rounds, regime detection
+- **Event Simulator**: Monte Carlo simulation with sliders → fan chart of price percentile bands (p10–p90)
+- **Geopolitics**: Polymarket prediction market odds cards filtered by category
 
 ## User preferences
 
@@ -56,6 +59,7 @@ _Populate as you build._
 - Never run `pnpm dev` at workspace root — use workflow restart or individual filters
 - Always run `pnpm --filter @workspace/api-spec run codegen` after changing `openapi.yaml`
 - Always run `pnpm run typecheck:libs` after changing any `lib/*` package
+- `nanoid` is a dependency of `@workspace/api-server` (used in lattice token generation)
 
 ## Pointers
 

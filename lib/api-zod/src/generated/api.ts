@@ -164,3 +164,88 @@ export const GetPolymarketMarketsResponseItem = zod.object({
 export const GetPolymarketMarketsResponse = zod.array(
   GetPolymarketMarketsResponseItem,
 );
+
+/**
+ * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
+ */
+export const runLatticeBodyTimeframeDefault = `7d`;
+
+export const RunLatticeBody = zod.object({
+  symbol: zod.string(),
+  timeframe: zod.string().default(runLatticeBodyTimeframeDefault),
+});
+
+export const RunLatticeResponse = zod.object({
+  runId: zod.string(),
+  symbol: zod.string(),
+  timeframe: zod.string(),
+  regime: zod.enum(["calm", "volatile", "crisis"]),
+  regimeScore: zod.number(),
+  tokens: zod.array(
+    zod.object({
+      id: zod.string(),
+      agentType: zod.string(),
+      round: zod.number(),
+      hypothesis: zod.enum(["bullish", "bearish", "neutral"]),
+      probability: zod.number(),
+      confidence: zod.number(),
+      rationale: zod.array(zod.string()),
+      shapHive: zod.number(),
+      shapAi: zod.number(),
+      shapGeo: zod.number(),
+      liquidityScore: zod.number(),
+      parentIds: zod.array(zod.string()),
+    }),
+  ),
+  debateRounds: zod.array(
+    zod.object({
+      round: zod.number(),
+      agentType: zod.string(),
+      challenge: zod.string(),
+      adjustment: zod.number(),
+      accepted: zod.boolean(),
+    }),
+  ),
+  shap: zod.object({
+    hive: zod.number(),
+    ai: zod.number(),
+    geo: zod.number(),
+  }),
+  finalPrediction: zod.object({
+    direction: zod.enum(["bullish", "bearish", "neutral"]),
+    targetPrice: zod.number(),
+    confidence: zod.number(),
+    hivemindScore: zod.number(),
+  }),
+  causalNarrative: zod.string(),
+  minorityReport: zod.string().nullish(),
+  agentConsensus: zod.number(),
+});
+
+/**
+ * @summary Get agent reputation and calibration states
+ */
+export const GetLatticeAgentsResponseItem = zod.object({
+  agentId: zod.string(),
+  agentType: zod.string(),
+  reputation: zod.number(),
+  brierScore: zod.number(),
+  totalRuns: zod.number(),
+  correctRuns: zod.number(),
+});
+export const GetLatticeAgentsResponse = zod.array(GetLatticeAgentsResponseItem);
+
+/**
+ * @summary Detect current volatility regime for a symbol
+ */
+export const GetMarketRegimeQueryParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetMarketRegimeResponse = zod.object({
+  symbol: zod.string(),
+  regime: zod.enum(["calm", "volatile", "crisis"]),
+  regimeScore: zod.number(),
+  volatility: zod.number(),
+  description: zod.string(),
+});

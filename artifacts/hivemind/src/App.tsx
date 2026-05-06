@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Simulator from "@/pages/simulator";
 import Geopolitics from "@/pages/geopolitics";
+import Lattice from "@/pages/lattice";
 import { Layout } from "@/components/layout/layout";
 
 const queryClient = new QueryClient();
@@ -16,6 +17,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/lattice" component={Lattice} />
         <Route path="/simulator" component={Simulator} />
         <Route path="/geopolitics" component={Geopolitics} />
         <Route component={NotFound} />

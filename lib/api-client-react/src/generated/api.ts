@@ -17,10 +17,13 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AgentState,
   CreatePredictionBody,
   GetMarketHistoryParams,
+  GetMarketRegimeParams,
   GetPolymarketMarketsParams,
   HealthStatus,
+  LatticeResult,
   MarketHistory,
   MarketPrice,
   MonteCarloBody,
@@ -28,6 +31,8 @@ import type {
   PolymarketMarket,
   Prediction,
   PredictionSummary,
+  RegimeStatus,
+  RunLatticeBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -716,6 +721,261 @@ export function useGetPolymarketMarkets<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPolymarketMarketsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
+ */
+export const getRunLatticeUrl = () => {
+  return `/api/lattice/run`;
+};
+
+export const runLattice = async (
+  runLatticeBody: RunLatticeBody,
+  options?: RequestInit,
+): Promise<LatticeResult> => {
+  return customFetch<LatticeResult>(getRunLatticeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(runLatticeBody),
+  });
+};
+
+export const getRunLatticeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runLattice>>,
+    TError,
+    { data: BodyType<RunLatticeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runLattice>>,
+  TError,
+  { data: BodyType<RunLatticeBody> },
+  TContext
+> => {
+  const mutationKey = ["runLattice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runLattice>>,
+    { data: BodyType<RunLatticeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return runLattice(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunLatticeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runLattice>>
+>;
+export type RunLatticeMutationBody = BodyType<RunLatticeBody>;
+export type RunLatticeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
+ */
+export const useRunLattice = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runLattice>>,
+    TError,
+    { data: BodyType<RunLatticeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runLattice>>,
+  TError,
+  { data: BodyType<RunLatticeBody> },
+  TContext
+> => {
+  return useMutation(getRunLatticeMutationOptions(options));
+};
+
+/**
+ * @summary Get agent reputation and calibration states
+ */
+export const getGetLatticeAgentsUrl = () => {
+  return `/api/lattice/agents`;
+};
+
+export const getLatticeAgents = async (
+  options?: RequestInit,
+): Promise<AgentState[]> => {
+  return customFetch<AgentState[]>(getGetLatticeAgentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLatticeAgentsQueryKey = () => {
+  return [`/api/lattice/agents`] as const;
+};
+
+export const getGetLatticeAgentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLatticeAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLatticeAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLatticeAgentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLatticeAgents>>
+  > = ({ signal }) => getLatticeAgents({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLatticeAgents>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLatticeAgentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLatticeAgents>>
+>;
+export type GetLatticeAgentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get agent reputation and calibration states
+ */
+
+export function useGetLatticeAgents<
+  TData = Awaited<ReturnType<typeof getLatticeAgents>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLatticeAgents>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLatticeAgentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Detect current volatility regime for a symbol
+ */
+export const getGetMarketRegimeUrl = (params: GetMarketRegimeParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/lattice/regime?${stringifiedParams}`
+    : `/api/lattice/regime`;
+};
+
+export const getMarketRegime = async (
+  params: GetMarketRegimeParams,
+  options?: RequestInit,
+): Promise<RegimeStatus> => {
+  return customFetch<RegimeStatus>(getGetMarketRegimeUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMarketRegimeQueryKey = (params?: GetMarketRegimeParams) => {
+  return [`/api/lattice/regime`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMarketRegimeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMarketRegime>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMarketRegimeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketRegime>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMarketRegimeQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketRegime>>> = ({
+    signal,
+  }) => getMarketRegime(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMarketRegime>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMarketRegimeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMarketRegime>>
+>;
+export type GetMarketRegimeQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Detect current volatility regime for a symbol
+ */
+
+export function useGetMarketRegime<
+  TData = Awaited<ReturnType<typeof getMarketRegime>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMarketRegimeParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketRegime>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMarketRegimeQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

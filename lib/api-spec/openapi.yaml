@@ -18,6 +18,8 @@ tags:
     description: Monte Carlo simulator
   - name: polymarket
     description: Polymarket prediction markets
+  - name: lattice
+    description: Hivemind Predictive Lattice (HPL-HPA v2)
 
 paths:
   /healthz:
@@ -156,6 +158,59 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PolymarketMarket"
+
+  /lattice/run:
+    post:
+      operationId: runLattice
+      tags: [lattice]
+      summary: Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunLatticeBody"
+      responses:
+        "200":
+          description: Full lattice result with belief tokens, debate rounds, SHAP, and causal narrative
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatticeResult"
+
+  /lattice/agents:
+    get:
+      operationId: getLatticeAgents
+      tags: [lattice]
+      summary: Get agent reputation and calibration states
+      responses:
+        "200":
+          description: Agent states
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentState"
+
+  /lattice/regime:
+    get:
+      operationId: getMarketRegime
+      tags: [lattice]
+      summary: Detect current volatility regime for a symbol
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Regime status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegimeStatus"
 
 components:
   schemas:
@@ -383,3 +438,155 @@ components:
         active:
           type: boolean
       required: [id, question, yesPrice, noPrice, active]
+
+    RunLatticeBody:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timeframe:
+          type: string
+          default: "7d"
+      required: [symbol]
+
+    LatticeResult:
+      type: object
+      properties:
+        runId:
+          type: string
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        regime:
+          type: string
+          enum: [calm, volatile, crisis]
+        regimeScore:
+          type: number
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeliefToken"
+        debateRounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/DebateRound"
+        shap:
+          $ref: "#/components/schemas/ShapBreakdown"
+        finalPrediction:
+          $ref: "#/components/schemas/LatticePrediction"
+        causalNarrative:
+          type: string
+        minorityReport:
+          type: string
+          nullable: true
+        agentConsensus:
+          type: number
+      required: [runId, symbol, timeframe, regime, regimeScore, tokens, debateRounds, shap, finalPrediction, causalNarrative, agentConsensus]
+
+    BeliefToken:
+      type: object
+      properties:
+        id:
+          type: string
+        agentType:
+          type: string
+        round:
+          type: integer
+        hypothesis:
+          type: string
+          enum: [bullish, bearish, neutral]
+        probability:
+          type: number
+        confidence:
+          type: number
+        rationale:
+          type: array
+          items:
+            type: string
+        shapHive:
+          type: number
+        shapAi:
+          type: number
+        shapGeo:
+          type: number
+        liquidityScore:
+          type: number
+        parentIds:
+          type: array
+          items:
+            type: string
+      required: [id, agentType, round, hypothesis, probability, confidence, rationale, shapHive, shapAi, shapGeo, liquidityScore, parentIds]
+
+    DebateRound:
+      type: object
+      properties:
+        round:
+          type: integer
+        agentType:
+          type: string
+        challenge:
+          type: string
+        adjustment:
+          type: number
+        accepted:
+          type: boolean
+      required: [round, agentType, challenge, adjustment, accepted]
+
+    ShapBreakdown:
+      type: object
+      properties:
+        hive:
+          type: number
+        ai:
+          type: number
+        geo:
+          type: number
+      required: [hive, ai, geo]
+
+    LatticePrediction:
+      type: object
+      properties:
+        direction:
+          type: string
+          enum: [bullish, bearish, neutral]
+        targetPrice:
+          type: number
+        confidence:
+          type: number
+        hivemindScore:
+          type: number
+      required: [direction, targetPrice, confidence, hivemindScore]
+
+    AgentState:
+      type: object
+      properties:
+        agentId:
+          type: string
+        agentType:
+          type: string
+        reputation:
+          type: number
+        brierScore:
+          type: number
+        totalRuns:
+          type: integer
+        correctRuns:
+          type: integer
+      required: [agentId, agentType, reputation, brierScore, totalRuns, correctRuns]
+
+    RegimeStatus:
+      type: object
+      properties:
+        symbol:
+          type: string
+        regime:
+          type: string
+          enum: [calm, volatile, crisis]
+        regimeScore:
+          type: number
+        volatility:
+          type: number
+        description:
+          type: string
+      required: [symbol, regime, regimeScore, volatility, description]

@@ -4,6 +4,7 @@ import marketRouter from "./market";
 import predictionsRouter from "./predictions";
 import simulatorRouter from "./simulator";
 import polymarketRouter from "./polymarket";
+import latticeRouter from "./lattice";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(marketRouter);
 router.use(predictionsRouter);
 router.use(simulatorRouter);
 router.use(polymarketRouter);
+router.use(latticeRouter);
 
 export default router;

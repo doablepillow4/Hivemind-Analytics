@@ -1,9 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, LineChart, Globe } from "lucide-react";
+import { LayoutDashboard, LineChart, Globe, Network } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Markets", icon: LayoutDashboard },
+  { href: "/lattice", label: "Lattice", icon: Network },
   { href: "/simulator", label: "Simulator", icon: LineChart },
   { href: "/geopolitics", label: "Geopolitics", icon: Globe },
 ];

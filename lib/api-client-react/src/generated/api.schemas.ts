@@ -141,10 +141,123 @@ export interface PolymarketMarket {
   active: boolean;
 }
 
+export interface RunLatticeBody {
+  symbol: string;
+  timeframe?: string;
+}
+
+export type LatticeResultRegime =
+  (typeof LatticeResultRegime)[keyof typeof LatticeResultRegime];
+
+export const LatticeResultRegime = {
+  calm: "calm",
+  volatile: "volatile",
+  crisis: "crisis",
+} as const;
+
+export type BeliefTokenHypothesis =
+  (typeof BeliefTokenHypothesis)[keyof typeof BeliefTokenHypothesis];
+
+export const BeliefTokenHypothesis = {
+  bullish: "bullish",
+  bearish: "bearish",
+  neutral: "neutral",
+} as const;
+
+export interface BeliefToken {
+  id: string;
+  agentType: string;
+  round: number;
+  hypothesis: BeliefTokenHypothesis;
+  probability: number;
+  confidence: number;
+  rationale: string[];
+  shapHive: number;
+  shapAi: number;
+  shapGeo: number;
+  liquidityScore: number;
+  parentIds: string[];
+}
+
+export interface DebateRound {
+  round: number;
+  agentType: string;
+  challenge: string;
+  adjustment: number;
+  accepted: boolean;
+}
+
+export interface ShapBreakdown {
+  hive: number;
+  ai: number;
+  geo: number;
+}
+
+export type LatticePredictionDirection =
+  (typeof LatticePredictionDirection)[keyof typeof LatticePredictionDirection];
+
+export const LatticePredictionDirection = {
+  bullish: "bullish",
+  bearish: "bearish",
+  neutral: "neutral",
+} as const;
+
+export interface LatticePrediction {
+  direction: LatticePredictionDirection;
+  targetPrice: number;
+  confidence: number;
+  hivemindScore: number;
+}
+
+export interface LatticeResult {
+  runId: string;
+  symbol: string;
+  timeframe: string;
+  regime: LatticeResultRegime;
+  regimeScore: number;
+  tokens: BeliefToken[];
+  debateRounds: DebateRound[];
+  shap: ShapBreakdown;
+  finalPrediction: LatticePrediction;
+  causalNarrative: string;
+  minorityReport?: string | null;
+  agentConsensus: number;
+}
+
+export interface AgentState {
+  agentId: string;
+  agentType: string;
+  reputation: number;
+  brierScore: number;
+  totalRuns: number;
+  correctRuns: number;
+}
+
+export type RegimeStatusRegime =
+  (typeof RegimeStatusRegime)[keyof typeof RegimeStatusRegime];
+
+export const RegimeStatusRegime = {
+  calm: "calm",
+  volatile: "volatile",
+  crisis: "crisis",
+} as const;
+
+export interface RegimeStatus {
+  symbol: string;
+  regime: RegimeStatusRegime;
+  regimeScore: number;
+  volatility: number;
+  description: string;
+}
+
 export type GetMarketHistoryParams = {
   days?: number;
 };
 
 export type GetPolymarketMarketsParams = {
   limit?: number;
+};
+
+export type GetMarketRegimeParams = {
+  symbol: string;
 };
