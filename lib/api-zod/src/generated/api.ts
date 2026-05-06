@@ -226,6 +226,23 @@ export const RunLatticeResponse = zod.object({
 });
 
 /**
+ * @summary Challenge a specific lattice agent mid-debate
+ */
+export const LatticeChallengeBody = zod.object({
+  agentType: zod.string(),
+  challenge: zod.string(),
+  symbol: zod.string(),
+  currentProbability: zod.number(),
+});
+
+export const LatticeChallengeResponse = zod.object({
+  agentType: zod.string(),
+  response: zod.string(),
+  adjustment: zod.number(),
+  newProbability: zod.number(),
+});
+
+/**
  * @summary Get agent reputation and calibration states
  */
 export const GetLatticeAgentsResponseItem = zod.object({

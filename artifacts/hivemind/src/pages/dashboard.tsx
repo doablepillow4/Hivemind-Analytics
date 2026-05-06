@@ -10,11 +10,12 @@ import {
   getGetPredictionsSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Activity, Target, TrendingUp, TrendingDown, Zap, ChevronRight } from "lucide-react";
+import { Activity, Target, TrendingUp, TrendingDown, Zap, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { TickerCombobox } from "@/components/ticker-combobox";
+import { useAppStore } from "@/store/app-store";
 
 export default function Dashboard() {
   const { data: prices, isLoading: loadingPrices } = useGetMarketPrices({
@@ -36,15 +37,36 @@ export default function Dashboard() {
     },
   });
 
-  const [selectedSymbol, setSelectedSymbol] = useState<string>("");
+  const { selectedAsset, setSelectedAsset, setLastPredictionSymbol } = useAppStore();
+
+  const [selectedSymbol, setSelectedSymbol] = useState<string>(selectedAsset?.symbol ?? "");
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("1w");
+
   const priceList = Array.isArray(prices) ? prices : [];
   const predictionList = Array.isArray(predictions) ? predictions : [];
 
-  const handleGenerate = () => {
+  function handleSymbolChange(symbol: string, price?: number) {
+    setSelectedSymbol(symbol);
+    if (symbol) {
+      const asset = priceList.find((p) => p.symbol === symbol);
+      setSelectedAsset({ symbol, name: asset?.name, price: price ?? asset?.price });
+    } else {
+      setSelectedAsset(null);
+    }
+  }
+
+  function handleGenerate() {
     if (!selectedSymbol) return;
+    setLastPredictionSymbol(selectedSymbol);
     createPrediction.mutate({ data: { symbol: selectedSymbol, timeframe: selectedTimeframe } });
-  };
+  }
+
+  function handleCardClick(symbol: string, price: number, name: string) {
+    setSelectedSymbol(symbol);
+    setSelectedAsset({ symbol, name, price });
+  }
+
+  const latestPrediction = createPrediction.data;
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -122,7 +144,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Generate Prediction */}
+      {/* Generate Prediction with Autocomplete */}
       <div className="relative rounded-xl border border-primary/20 bg-primary/5 p-4 overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative space-y-3">
@@ -130,37 +152,79 @@ export default function Dashboard() {
             <Zap className="w-3.5 h-3.5 text-primary" />
             <span className="text-[11px] font-semibold text-white tracking-wide">Generate Prediction</span>
           </div>
-          <div className="flex gap-2">
-            <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
-              <SelectTrigger className="flex-1 bg-black/30 border-white/10 text-sm h-9 font-mono">
-                <SelectValue placeholder="Symbol" />
-              </SelectTrigger>
-              <SelectContent>
-                {priceList.map((p) => (
-                  <SelectItem key={p.symbol} value={p.symbol} className="font-mono">{p.symbol}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
+          {/* Autocomplete search */}
+          <TickerCombobox
+            value={selectedSymbol}
+            onChange={handleSymbolChange}
+            options={priceList.map((p) => ({ symbol: p.symbol, name: p.name, price: p.price, type: p.type }))}
+            placeholder="Search ticker or company name…"
+          />
+
+          {/* Selected asset preview */}
+          {selectedSymbol && (() => {
+            const asset = priceList.find(p => p.symbol === selectedSymbol);
+            if (!asset) return null;
+            return (
+              <div className="flex items-center justify-between bg-black/20 border border-white/[0.06] rounded-lg px-3 py-2">
+                <div>
+                  <span className="text-[11px] font-mono font-600 text-white">{asset.symbol}</span>
+                  <span className="text-[10px] text-muted-foreground ml-2">{asset.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-mono text-white">${asset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${asset.changePercent >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}>
+                    {asset.changePercent >= 0 ? "+" : ""}{asset.changePercent.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="flex gap-2">
             <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-              <SelectTrigger className="w-28 bg-black/30 border-white/10 text-sm h-9 font-mono">
+              <SelectTrigger className="w-full bg-black/30 border-white/10 text-sm h-9 font-mono">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1d" className="font-mono">1D</SelectItem>
-                <SelectItem value="1w" className="font-mono">1W</SelectItem>
-                <SelectItem value="1m" className="font-mono">1M</SelectItem>
+                <SelectItem value="1d" className="font-mono">1 Day</SelectItem>
+                <SelectItem value="1w" className="font-mono">1 Week</SelectItem>
+                <SelectItem value="1m" className="font-mono">1 Month</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              onClick={handleGenerate}
+              disabled={!selectedSymbol || createPrediction.isPending}
+              className="flex-1 gap-2 h-9 font-mono text-sm whitespace-nowrap"
+            >
+              <Target className="w-4 h-4" />
+              {createPrediction.isPending ? "Analyzing…" : "Run Prediction"}
+            </Button>
           </div>
-          <Button
-            onClick={handleGenerate}
-            disabled={!selectedSymbol || createPrediction.isPending}
-            className="w-full gap-2 h-9 font-mono text-sm"
-          >
-            <Target className="w-4 h-4" />
-            {createPrediction.isPending ? "Analyzing..." : "Run Prediction"}
-          </Button>
+
+          {/* Inline result of just-generated prediction */}
+          {latestPrediction && (
+            <div className={`mt-1 rounded-lg border p-3 ${
+              latestPrediction.direction === "bullish" ? "border-emerald-500/25 bg-emerald-500/5" :
+              latestPrediction.direction === "bearish" ? "border-red-500/25 bg-red-500/5" :
+              "border-amber-500/25 bg-amber-500/5"
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-mono font-600 text-white">{latestPrediction.symbol} · {latestPrediction.timeframe}</span>
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold uppercase tracking-widest ${
+                  latestPrediction.direction === "bullish" ? "bg-emerald-500/15 text-emerald-400" :
+                  latestPrediction.direction === "bearish" ? "bg-red-500/15 text-red-400" :
+                  "bg-amber-500/15 text-amber-400"
+                }`}>
+                  {latestPrediction.direction}
+                </span>
+              </div>
+              <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
+                <span>Target <span className="text-white">${latestPrediction.targetPrice.toFixed(2)}</span></span>
+                <span>Conf <span className="text-primary">{(latestPrediction.confidence * 100).toFixed(0)}%</span></span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -173,14 +237,18 @@ export default function Dashboard() {
 
         {loadingPrices ? (
           <div className="grid grid-cols-2 gap-3">
-            {[1,2,3,4].map(i => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-28 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse" />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {priceList.map((price) => (
-              <Card key={price.symbol} className="overflow-hidden bg-card/60 border-white/[0.07] card-hover backdrop-blur-sm cursor-pointer">
+              <Card
+                key={price.symbol}
+                className={`overflow-hidden bg-card/60 border-white/[0.07] card-hover backdrop-blur-sm cursor-pointer transition-all duration-200 ${selectedSymbol === price.symbol ? "border-primary/30 bg-primary/[0.04]" : ""}`}
+                onClick={() => handleCardClick(price.symbol, price.price, price.name)}
+              >
                 <CardContent className="p-3.5">
                   <div className="flex justify-between items-start mb-1.5">
                     <div>
@@ -188,9 +256,7 @@ export default function Dashboard() {
                       <div className="text-[9px] font-mono text-muted-foreground/70 truncate max-w-[72px] mt-0.5">{price.name}</div>
                     </div>
                     <div className={`text-[10px] font-mono font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded ${
-                      price.changePercent >= 0
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-red-500/10 text-red-400"
+                      price.changePercent >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
                     }`}>
                       {price.changePercent >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                       {Math.abs(price.changePercent).toFixed(2)}%
@@ -232,26 +298,26 @@ export default function Dashboard() {
 
         {loadingPredictions ? (
           <div className="space-y-3">
-            {[1,2].map(i => (
+            {[1, 2].map((i) => (
               <div key={i} className="h-32 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse" />
             ))}
           </div>
         ) : predictionList.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-white/10 rounded-xl">
             <Target className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-[12px] text-muted-foreground">No predictions yet. Generate one above.</p>
+            <p className="text-[12px] text-muted-foreground">No predictions yet. Search for an asset above.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {predictionList.map((pred) => (
-              <div key={pred.id} className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-card/60 backdrop-blur-sm card-hover">
+              <div
+                key={pred.id}
+                className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-card/60 backdrop-blur-sm card-hover"
+              >
                 <div
                   className={`absolute top-0 left-0 w-1 h-full ${
-                    pred.direction === "bullish"
-                      ? "bg-emerald-500"
-                      : pred.direction === "bearish"
-                      ? "bg-red-500"
-                      : "bg-amber-500"
+                    pred.direction === "bullish" ? "bg-emerald-500" :
+                    pred.direction === "bearish" ? "bg-red-500" : "bg-amber-500"
                   }`}
                 />
                 <div className="p-4 pl-5">
@@ -262,14 +328,17 @@ export default function Dashboard() {
                         {pred.timeframe}
                       </span>
                     </div>
-                    <div className={`text-[9px] font-mono px-2 py-1 rounded-full font-semibold tracking-widest uppercase ${
-                      pred.direction === "bullish"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : pred.direction === "bearish"
-                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                        : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    }`}>
-                      {pred.direction}
+                    <div className="flex items-center gap-2">
+                      {pred.outcome === "correct" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      {pred.outcome === "incorrect" && <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                      {pred.outcome === "pending" && <Clock className="w-3.5 h-3.5 text-amber-400/60" />}
+                      <div className={`text-[9px] font-mono px-2 py-1 rounded-full font-semibold tracking-widest uppercase ${
+                        pred.direction === "bullish" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                        pred.direction === "bearish" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                        "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      }`}>
+                        {pred.direction}
+                      </div>
                     </div>
                   </div>
 
