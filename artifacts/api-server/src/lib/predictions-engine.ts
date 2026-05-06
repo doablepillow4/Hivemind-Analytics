@@ -63,7 +63,7 @@ function computeMovingAverages(closes: number[]) {
 
 export async function generatePrediction(symbol: string, timeframe = "7d", currentPrice: number) {
   const isCrypto = symbol in CRYPTO_ID_MAP;
-  let history: Array<{ close: number }> = [];
+  let history: Array<{ close: number | null }> = [];
   try {
     if (isCrypto) {
       const coinId = CRYPTO_ID_MAP[symbol]?.id ?? symbol.toLowerCase();
@@ -75,7 +75,7 @@ export async function generatePrediction(symbol: string, timeframe = "7d", curre
     logger.warn({ symbol, err }, "Could not fetch history for prediction");
   }
 
-  const closes = history.filter((h) => h.close != null).map((h) => h.close);
+  const closes = history.filter((h): h is { close: number } => h.close != null && typeof h.close === "number").map((h) => h.close);
   if (closes.length < 10) {
     closes.push(...Array.from({ length: 20 }, (_, i) => currentPrice * (1 + (Math.sin(i) * 0.03))));
   }

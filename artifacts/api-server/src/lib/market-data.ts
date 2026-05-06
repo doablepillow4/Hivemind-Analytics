@@ -224,6 +224,25 @@ export async function fetchCryptoHistory(coinId: string, days = 30) {
 export const STOCK_SYMBOL_LIST = STOCK_SYMBOLS;
 export const CRYPTO_ID_MAP = CRYPTO_IDS;
 
+export async function fetchAnyTicker(symbol: string): Promise<{
+  symbol: string; name: string; price: number; change: number; changePercent: number;
+  volume: number; marketCap: number; type: "stock" | "crypto"; sparkline: number[]; updatedAt: string;
+} | null> {
+  const upper = symbol.toUpperCase();
+
+  if (upper in CRYPTO_IDS) {
+    const prices = await fetchCryptoPrices();
+    return prices.find((p) => p.symbol === upper) ?? null;
+  }
+
+  try {
+    const result = await fetchStockPrice(upper);
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 function generateSparkline(price: number, changePercent: number): number[] {
   const points = 15;
   const result: number[] = [];

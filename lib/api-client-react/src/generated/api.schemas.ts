@@ -9,6 +9,10 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface ErrorResponse {
+  error: string;
+}
+
 export type MarketPriceType =
   (typeof MarketPriceType)[keyof typeof MarketPriceType];
 
@@ -113,6 +117,20 @@ export interface MonteCarloBody {
   eventImpact: number;
   timeHorizon: number;
   simulations?: number;
+  /** Optional geopolitical preset key to inject geo context */
+  geoPresetKey?: string;
+}
+
+export interface GeoMarketSignal {
+  question: string;
+  yesPrice: number;
+  noPrice: number;
+  volume: number;
+  category: string;
+  /** How this market affects the simulated asset */
+  marketImpact: string;
+  /** Change in yes probability since last fetch (positive = rising) */
+  oddsShift?: number | null;
 }
 
 export interface MonteCarloResult {
@@ -126,7 +144,11 @@ export interface MonteCarloResult {
   p90: number;
   bullishProbability: number;
   bearishProbability: number;
+  var95: number;
+  maxDrawdown: number;
+  expectedReturn: number;
   paths: number[][];
+  geopoliticsContext?: GeoMarketSignal[] | null;
 }
 
 export interface PolymarketMarket {
@@ -139,6 +161,8 @@ export interface PolymarketMarket {
   liquidity?: number;
   endDate?: string;
   active: boolean;
+  /** Change in yes probability since last fetch (positive = rising odds) */
+  oddsShift?: number | null;
 }
 
 export interface RunLatticeBody {
@@ -209,6 +233,17 @@ export interface LatticePrediction {
   hivemindScore: number;
 }
 
+export interface PolymarketIntelItem {
+  /** Short breaking-news style headline about the event */
+  headline: string;
+  question: string;
+  yesPrice: number;
+  oddsShift?: number | null;
+  marketImpact: string;
+  category: string;
+  volume: number;
+}
+
 export interface LatticeResult {
   runId: string;
   symbol: string;
@@ -222,6 +257,7 @@ export interface LatticeResult {
   causalNarrative: string;
   minorityReport?: string | null;
   agentConsensus: number;
+  polymarketIntel?: PolymarketIntelItem[] | null;
 }
 
 export interface AgentState {
@@ -231,6 +267,25 @@ export interface AgentState {
   brierScore: number;
   totalRuns: number;
   correctRuns: number;
+}
+
+export interface AgentReputationUpdate {
+  agentType: string;
+  oldReputation: number;
+  newReputation: number;
+  delta: number;
+  reason: string;
+}
+
+export interface LatticeTrainingResult {
+  /** Number of predictions resolved in this training cycle */
+  resolved: number;
+  /** Number of agents whose reputation improved */
+  improved: number;
+  agentUpdates: AgentReputationUpdate[];
+  /** Net accuracy improvement (0-1) from this training cycle */
+  accuracyGain: number;
+  message: string;
 }
 
 export type NewsItemSentiment =
@@ -252,6 +307,7 @@ export interface NewsItem {
   sentiment: NewsItemSentiment;
   category: string;
   isBreaking: boolean;
+  relatedMarkets?: GeoMarketSignal[] | null;
 }
 
 export interface LatticeChallengeBody {

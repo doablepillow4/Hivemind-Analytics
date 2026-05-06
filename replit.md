@@ -1,6 +1,6 @@
 # Hivemind Predictor
 
-A premium dark-themed predictive analytics web app with live market prices, AI confidence-scored predictions, Monte Carlo event simulation, Polymarket geopolitics intelligence, and the Hivemind Predictive Lattice (HPL-HPA v2) multi-agent AI engine.
+A premium dark-themed predictive analytics web app with live market prices, AI confidence-scored predictions, Monte Carlo event simulation with geo intelligence, Polymarket prediction market feeds with odds delta tracking, and the Hivemind Predictive Lattice (HPL-HPA v2) multi-agent AI engine.
 
 ## Run & Operate
 
@@ -15,7 +15,7 @@ A premium dark-themed predictive analytics web app with live market prices, AI c
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- Frontend: React 19 + Vite 7, Wouter routing, Recharts, shadcn/ui, Tailwind CSS
+- Frontend: React 19 + Vite 7, Wouter routing, Recharts, shadcn/ui, Tailwind CSS, date-fns
 - API: Express 5 + Pino logging
 - DB: PostgreSQL + Drizzle ORM (`lib/db`)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
@@ -29,8 +29,9 @@ A premium dark-themed predictive analytics web app with live market prices, AI c
 - `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth for routes)
 - `lib/api-client-react/src/generated/` — Orval-generated React Query hooks + types
 - `lib/api-zod/src/generated/` — Orval-generated Zod validation schemas
-- `artifacts/api-server/src/routes/` — Express route handlers (lattice.ts, predictions.ts, etc.)
+- `artifacts/api-server/src/routes/` — Express route handlers (lattice.ts, predictions.ts, market.ts, simulator.ts, polymarket.ts)
 - `artifacts/api-server/src/lib/lattice/` — full HPL engine (9 files)
+- `artifacts/api-server/src/lib/polymarket-cache.ts` — in-memory odds delta tracking + geo market matching
 - `artifacts/hivemind/src/pages/` — Dashboard, Lattice, Simulator, Geopolitics pages
 
 ## Architecture decisions
@@ -38,16 +39,18 @@ A premium dark-themed predictive analytics web app with live market prices, AI c
 - Contract-first: OpenAPI spec → Orval codegen → React Query hooks + Zod schemas (never write hooks by hand)
 - Orval zod config uses `mode: "single"` to avoid naming conflicts between Zod schemas and TypeScript types
 - All external API calls (Yahoo Finance, CoinGecko, Polymarket) have fallback data on failure
-- Self-improving prediction loop: expired predictions are auto-resolved against real prices; past accuracy boosts future confidence scores
+- Self-improving prediction loop: expired predictions are auto-resolved against real prices; past accuracy boosts future confidence scores; `/lattice/train` runs a full Brier-score agent reputation update cycle
 - `isNull()` (not `eq(col, null)`) for Drizzle NULL checks — TS enforces this
 - HPL engine is stateless per-run; agent reputation persists to `agent_states` table
+- Polymarket odds delta tracking: in-memory Map on server, staleness = 5 min; `oddsShift` = current minus last cached yesPrice
+- Dynamic ticker lookup: `/market/quote/:symbol` fetches any stock via Yahoo Finance or any known crypto via CoinGecko
 
 ## Product
 
 - **Dashboard**: Live price cards (stocks + crypto) with sparklines, Hivemind model accuracy stats, latest predictions with confidence bars and signal breakdowns, one-click "Predict" for any symbol
-- **Lattice (HPL-HPA v2)**: Multi-agent AI engine — 4 hypothesis agents (Momentum, Mean Reversion, Vol-Regime, Hive Wisdom), 2 critique rounds (Devil's Advocate + Tail Risk), Synthesis (Bayesian fusion + Platt scaling), Meta (regime calibration). Outputs: Belief Token DAG (9 nodes), SHAP breakdown (Hive/AI/Geo %), causal narrative, Hivemind Score 0-100, minority report, debate rounds, regime detection
-- **Event Simulator**: Monte Carlo simulation with sliders → fan chart of price percentile bands (p10–p90)
-- **Geopolitics**: Polymarket prediction market odds cards filtered by category
+- **Lattice (HPL-HPA v2)**: Multi-agent AI engine — 4 hypothesis agents + 2 critique rounds + Synthesis + Meta. Polymarket intel feed inline (geo context). Training button triggers self-improvement cycle with agent Brier-score updates. Challenge any agent to inject new information.
+- **Event Simulator**: Monte Carlo simulation (GBM + event shock). Market + Geopolitical scenario presets (Black Swan, Taiwan Escalation, Iran Oil Shock, etc.). Dynamic ticker lookup for any symbol. Live Polymarket geo context panel showing relevant markets and odds deltas. Full risk metrics: VaR95, max drawdown, expected return.
+- **Geopolitics**: Global Risk Barometer (aggregated from conflict markets). Breaking Intelligence Feed: news items automatically matched with related Polymarket odds and displayed together. Region/category filters, odds delta tracking (↑/↓ arrows showing movement since last fetch).
 
 ## User preferences
 
@@ -60,6 +63,8 @@ _Populate as you build._
 - Always run `pnpm --filter @workspace/api-spec run codegen` after changing `openapi.yaml`
 - Always run `pnpm run typecheck:libs` after changing any `lib/*` package
 - `nanoid` is a dependency of `@workspace/api-server` (used in lattice token generation)
+- CoinGecko rate-limits (429) are expected in dev — fallback data is used automatically
+- `var95`, `maxDrawdown`, `expectedReturn` in MonteCarloResult were previously Zod-stripped (missing from schema) — now fixed
 
 ## Pointers
 

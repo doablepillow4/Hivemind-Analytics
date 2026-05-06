@@ -1,5 +1,8 @@
 import { Router, type IRouter } from "express";
 import { RunMonteCarloBody, RunMonteCarloResponse } from "@workspace/api-zod";
+import { getGeoMarketsForAsset } from "../lib/polymarket-cache";
+import { fetchPolymarketData, getFallbackMarkets } from "./polymarket";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -23,7 +26,6 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
   const paths: number[][] = [];
   const finalPrices: number[] = [];
 
-  // Track max drawdown across all simulated paths
   let worstDrawdown = 0;
 
   for (let sim = 0; sim < numSims; sim++) {
@@ -41,7 +43,7 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
       if (price > peakPrice) peakPrice = price;
       const dd = (peakPrice - price) / peakPrice;
       if (dd > simDrawdown) simDrawdown = dd;
-      path.push(parseFloat(price.toFixed(2)));
+      path.push(parseFloat(price.toFixed(4)));
     }
 
     finalPrices.push(price);
@@ -50,15 +52,27 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
   }
 
   finalPrices.sort((a, b) => a - b);
-  const p = (pct: number) => finalPrices[Math.floor((pct / 100) * finalPrices.length)];
+  const p = (pct: number) => finalPrices[Math.max(0, Math.floor((pct / 100) * finalPrices.length) - 1)] ?? finalPrices[0];
   const mean = finalPrices.reduce((a, b) => a + b, 0) / finalPrices.length;
   const bullish = finalPrices.filter((v) => v > currentPrice).length;
 
-  // 1-day 95% VaR using parametric method (1.645 σ)
   const var95 = currentPrice * vol * Math.sqrt(dt) * 1.6449;
-
-  // Expected return as a fraction of currentPrice
   const expectedReturn = currentPrice > 0 ? (mean - currentPrice) / currentPrice : 0;
+
+  let geopoliticsContext = null;
+  try {
+    const allMarkets = await fetchPolymarketData(30);
+    const relevant = getGeoMarketsForAsset(symbol, allMarkets);
+    if (relevant.length > 0) geopoliticsContext = relevant;
+  } catch {
+    try {
+      const fallback = getFallbackMarkets(20);
+      const relevant = getGeoMarketsForAsset(symbol, fallback);
+      if (relevant.length > 0) geopoliticsContext = relevant;
+    } catch (err) {
+      logger.warn({ err }, "Could not attach geo context to MC result");
+    }
+  }
 
   const result = {
     symbol,
@@ -75,6 +89,7 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
     maxDrawdown: parseFloat(worstDrawdown.toFixed(4)),
     expectedReturn: parseFloat(expectedReturn.toFixed(4)),
     paths,
+    geopoliticsContext,
   };
 
   res.json(RunMonteCarloResponse.parse(result));

@@ -32,6 +32,26 @@ export const GetMarketPricesResponseItem = zod.object({
 export const GetMarketPricesResponse = zod.array(GetMarketPricesResponseItem);
 
 /**
+ * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
+ */
+export const GetMarketQuoteParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const GetMarketQuoteResponse = zod.object({
+  symbol: zod.string(),
+  name: zod.string(),
+  price: zod.number(),
+  change: zod.number(),
+  changePercent: zod.number(),
+  volume: zod.number().optional(),
+  marketCap: zod.number().optional(),
+  type: zod.enum(["stock", "crypto"]),
+  sparkline: zod.array(zod.number()),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary Get historical price data for a symbol
  */
 export const GetMarketHistoryParams = zod.object({
@@ -125,6 +145,10 @@ export const RunMonteCarloBody = zod.object({
   eventImpact: zod.number(),
   timeHorizon: zod.number(),
   simulations: zod.number().default(runMonteCarloBodySimulationsDefault),
+  geoPresetKey: zod
+    .string()
+    .optional()
+    .describe("Optional geopolitical preset key to inject geo context"),
 });
 
 export const RunMonteCarloResponse = zod.object({
@@ -138,7 +162,30 @@ export const RunMonteCarloResponse = zod.object({
   p90: zod.number(),
   bullishProbability: zod.number(),
   bearishProbability: zod.number(),
+  var95: zod.number(),
+  maxDrawdown: zod.number(),
+  expectedReturn: zod.number(),
   paths: zod.array(zod.array(zod.number())),
+  geopoliticsContext: zod
+    .array(
+      zod.object({
+        question: zod.string(),
+        yesPrice: zod.number(),
+        noPrice: zod.number(),
+        volume: zod.number(),
+        category: zod.string(),
+        marketImpact: zod
+          .string()
+          .describe("How this market affects the simulated asset"),
+        oddsShift: zod
+          .number()
+          .nullish()
+          .describe(
+            "Change in yes probability since last fetch (positive = rising)",
+          ),
+      }),
+    )
+    .nullish(),
 });
 
 /**
@@ -160,6 +207,12 @@ export const GetPolymarketMarketsResponseItem = zod.object({
   liquidity: zod.number().optional(),
   endDate: zod.string().optional(),
   active: zod.boolean(),
+  oddsShift: zod
+    .number()
+    .nullish()
+    .describe(
+      "Change in yes probability since last fetch (positive = rising odds)",
+    ),
 });
 export const GetPolymarketMarketsResponse = zod.array(
   GetPolymarketMarketsResponseItem,
@@ -182,6 +235,26 @@ export const GetNewsResponseItem = zod.object({
   sentiment: zod.enum(["bullish", "bearish", "neutral"]),
   category: zod.string(),
   isBreaking: zod.boolean(),
+  relatedMarkets: zod
+    .array(
+      zod.object({
+        question: zod.string(),
+        yesPrice: zod.number(),
+        noPrice: zod.number(),
+        volume: zod.number(),
+        category: zod.string(),
+        marketImpact: zod
+          .string()
+          .describe("How this market affects the simulated asset"),
+        oddsShift: zod
+          .number()
+          .nullish()
+          .describe(
+            "Change in yes probability since last fetch (positive = rising)",
+          ),
+      }),
+    )
+    .nullish(),
 });
 export const GetNewsResponse = zod.array(GetNewsResponseItem);
 
@@ -240,6 +313,21 @@ export const RunLatticeResponse = zod.object({
   causalNarrative: zod.string(),
   minorityReport: zod.string().nullish(),
   agentConsensus: zod.number(),
+  polymarketIntel: zod
+    .array(
+      zod.object({
+        headline: zod
+          .string()
+          .describe("Short breaking-news style headline about the event"),
+        question: zod.string(),
+        yesPrice: zod.number(),
+        oddsShift: zod.number().nullish(),
+        marketImpact: zod.string(),
+        category: zod.string(),
+        volume: zod.number(),
+      }),
+    )
+    .nullish(),
 });
 
 /**
@@ -285,4 +373,27 @@ export const GetMarketRegimeResponse = zod.object({
   regimeScore: zod.number(),
   volatility: zod.number(),
   description: zod.string(),
+});
+
+/**
+ * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
+ */
+export const RunLatticeTrainingResponse = zod.object({
+  resolved: zod
+    .number()
+    .describe("Number of predictions resolved in this training cycle"),
+  improved: zod.number().describe("Number of agents whose reputation improved"),
+  agentUpdates: zod.array(
+    zod.object({
+      agentType: zod.string(),
+      oldReputation: zod.number(),
+      newReputation: zod.number(),
+      delta: zod.number(),
+      reason: zod.string(),
+    }),
+  ),
+  accuracyGain: zod
+    .number()
+    .describe("Net accuracy improvement (0-1) from this training cycle"),
+  message: zod.string(),
 });

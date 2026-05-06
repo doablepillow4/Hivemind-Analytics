@@ -52,6 +52,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/MarketPrice"
 
+  /market/quote/{symbol}:
+    get:
+      operationId: getMarketQuote
+      tags: [market]
+      summary: Get live quote for any ticker (stocks or crypto, even outside the default list)
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Live quote for the requested symbol
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketPrice"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /market/history/{symbol}:
     get:
       operationId: getMarketHistory
@@ -254,6 +279,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/RegimeStatus"
 
+  /lattice/train:
+    post:
+      operationId: runLatticeTraining
+      tags: [lattice]
+      summary: Resolve expired predictions and update agent reputations (self-improvement cycle)
+      responses:
+        "200":
+          description: Training result with resolved predictions and agent reputation updates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatticeTrainingResult"
+
 components:
   schemas:
     HealthStatus:
@@ -262,6 +300,13 @@ components:
         status:
           type: string
       required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 
     MarketPrice:
       type: object
@@ -425,6 +470,9 @@ components:
         simulations:
           type: integer
           default: 1000
+        geoPresetKey:
+          type: string
+          description: Optional geopolitical preset key to inject geo context
       required: [symbol, currentPrice, volatility, eventImpact, timeHorizon]
 
     MonteCarloResult:
@@ -450,13 +498,46 @@ components:
           type: number
         bearishProbability:
           type: number
+        var95:
+          type: number
+        maxDrawdown:
+          type: number
+        expectedReturn:
+          type: number
         paths:
           type: array
           items:
             type: array
             items:
               type: number
-      required: [symbol, simulations, median, mean, p10, p25, p75, p90, bullishProbability, bearishProbability, paths]
+        geopoliticsContext:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/GeoMarketSignal"
+      required: [symbol, simulations, median, mean, p10, p25, p75, p90, bullishProbability, bearishProbability, var95, maxDrawdown, expectedReturn, paths]
+
+    GeoMarketSignal:
+      type: object
+      properties:
+        question:
+          type: string
+        yesPrice:
+          type: number
+        noPrice:
+          type: number
+        volume:
+          type: number
+        category:
+          type: string
+        marketImpact:
+          type: string
+          description: How this market affects the simulated asset
+        oddsShift:
+          type: number
+          nullable: true
+          description: Change in yes probability since last fetch (positive = rising)
+      required: [question, yesPrice, noPrice, volume, category, marketImpact]
 
     PolymarketMarket:
       type: object
@@ -479,6 +560,10 @@ components:
           type: string
         active:
           type: boolean
+        oddsShift:
+          type: number
+          nullable: true
+          description: Change in yes probability since last fetch (positive = rising odds)
       required: [id, question, yesPrice, noPrice, active]
 
     RunLatticeBody:
@@ -524,7 +609,33 @@ components:
           nullable: true
         agentConsensus:
           type: number
+        polymarketIntel:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/PolymarketIntelItem"
       required: [runId, symbol, timeframe, regime, regimeScore, tokens, debateRounds, shap, finalPrediction, causalNarrative, agentConsensus]
+
+    PolymarketIntelItem:
+      type: object
+      properties:
+        headline:
+          type: string
+          description: Short breaking-news style headline about the event
+        question:
+          type: string
+        yesPrice:
+          type: number
+        oddsShift:
+          type: number
+          nullable: true
+        marketImpact:
+          type: string
+        category:
+          type: string
+        volume:
+          type: number
+      required: [headline, question, yesPrice, marketImpact, category, volume]
 
     BeliefToken:
       type: object
@@ -617,6 +728,41 @@ components:
           type: integer
       required: [agentId, agentType, reputation, brierScore, totalRuns, correctRuns]
 
+    LatticeTrainingResult:
+      type: object
+      properties:
+        resolved:
+          type: integer
+          description: Number of predictions resolved in this training cycle
+        improved:
+          type: integer
+          description: Number of agents whose reputation improved
+        agentUpdates:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentReputationUpdate"
+        accuracyGain:
+          type: number
+          description: Net accuracy improvement (0-1) from this training cycle
+        message:
+          type: string
+      required: [resolved, improved, agentUpdates, accuracyGain, message]
+
+    AgentReputationUpdate:
+      type: object
+      properties:
+        agentType:
+          type: string
+        oldReputation:
+          type: number
+        newReputation:
+          type: number
+        delta:
+          type: number
+        reason:
+          type: string
+      required: [agentType, oldReputation, newReputation, delta, reason]
+
     NewsItem:
       type: object
       properties:
@@ -639,6 +785,11 @@ components:
           type: string
         isBreaking:
           type: boolean
+        relatedMarkets:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/GeoMarketSignal"
       required: [id, title, description, url, source, publishedAt, sentiment, category, isBreaking]
 
     LatticeChallengeBody:

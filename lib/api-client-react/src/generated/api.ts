@@ -19,6 +19,7 @@ import type {
 import type {
   AgentState,
   CreatePredictionBody,
+  ErrorResponse,
   GetMarketHistoryParams,
   GetMarketRegimeParams,
   GetNewsParams,
@@ -27,6 +28,7 @@ import type {
   LatticeChallengeBody,
   LatticeChallengeResponse,
   LatticeResult,
+  LatticeTrainingResult,
   MarketHistory,
   MarketPrice,
   MonteCarloBody,
@@ -190,6 +192,93 @@ export function useGetMarketPrices<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMarketPricesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
+ */
+export const getGetMarketQuoteUrl = (symbol: string) => {
+  return `/api/market/quote/${symbol}`;
+};
+
+export const getMarketQuote = async (
+  symbol: string,
+  options?: RequestInit,
+): Promise<MarketPrice> => {
+  return customFetch<MarketPrice>(getGetMarketQuoteUrl(symbol), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMarketQuoteQueryKey = (symbol: string) => {
+  return [`/api/market/quote/${symbol}`] as const;
+};
+
+export const getGetMarketQuoteQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMarketQuote>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketQuote>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMarketQuoteQueryKey(symbol);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketQuote>>> = ({
+    signal,
+  }) => getMarketQuote(symbol, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMarketQuote>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMarketQuoteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMarketQuote>>
+>;
+export type GetMarketQuoteQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
+ */
+
+export function useGetMarketQuote<
+  TData = Awaited<ReturnType<typeof getMarketQuote>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  symbol: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketQuote>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMarketQuoteQueryOptions(symbol, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1159,3 +1248,84 @@ export function useGetMarketRegime<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
+ */
+export const getRunLatticeTrainingUrl = () => {
+  return `/api/lattice/train`;
+};
+
+export const runLatticeTraining = async (
+  options?: RequestInit,
+): Promise<LatticeTrainingResult> => {
+  return customFetch<LatticeTrainingResult>(getRunLatticeTrainingUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRunLatticeTrainingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runLatticeTraining>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runLatticeTraining>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["runLatticeTraining"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runLatticeTraining>>,
+    void
+  > = () => {
+    return runLatticeTraining(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunLatticeTrainingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runLatticeTraining>>
+>;
+
+export type RunLatticeTrainingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
+ */
+export const useRunLatticeTraining = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runLatticeTraining>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runLatticeTraining>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRunLatticeTrainingMutationOptions(options));
+};

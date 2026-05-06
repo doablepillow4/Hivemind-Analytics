@@ -4,12 +4,15 @@ import {
   GetMarketHistoryParams,
   GetMarketHistoryQueryParams,
   GetMarketHistoryResponse,
+  GetMarketQuoteParams,
+  GetMarketQuoteResponse,
 } from "@workspace/api-zod";
 import {
   fetchStockPrice,
   fetchCryptoPrices,
   fetchStockHistory,
   fetchCryptoHistory,
+  fetchAnyTicker,
   STOCK_SYMBOL_LIST,
   CRYPTO_ID_MAP,
 } from "../lib/market-data";
@@ -42,6 +45,27 @@ router.get("/market/prices", async (req, res): Promise<void> => {
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   res.json(prices);
+});
+
+router.get("/market/quote/:symbol", async (req, res): Promise<void> => {
+  const params = GetMarketQuoteParams.safeParse({ symbol: req.params.symbol });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const symbol = params.data.symbol.toUpperCase();
+  try {
+    const quote = await fetchAnyTicker(symbol);
+    if (!quote) {
+      res.status(404).json({ error: `No data found for symbol: ${symbol}` });
+      return;
+    }
+    res.json(GetMarketQuoteResponse.parse(quote));
+  } catch (err) {
+    logger.warn({ err, symbol }, "Quote fetch failed");
+    res.status(404).json({ error: `Could not fetch quote for ${symbol}` });
+  }
 });
 
 router.get("/market/history/:symbol", async (req, res): Promise<void> => {
