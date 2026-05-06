@@ -138,6 +138,9 @@ export const RunMonteCarloResponse = zod.object({
   p90: zod.number(),
   bullishProbability: zod.number(),
   bearishProbability: zod.number(),
+  var95: zod.number(),
+  maxDrawdown: zod.number(),
+  expectedReturn: zod.number(),
   paths: zod.array(zod.array(zod.number())),
 });
 

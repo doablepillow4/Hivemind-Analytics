@@ -1,119 +1,372 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useGetMarketPrices, useRunMonteCarlo } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { Activity, Play, BarChart2 } from "lucide-react";
+import { Activity, Play, BarChart2, Search, X, ChevronDown, AlertTriangle } from "lucide-react";
 
+// ─── Event Presets ────────────────────────────────────────────────────────────
+interface Preset {
+  label: string;
+  emoji: string;
+  volatility: number;
+  eventImpact: number;
+  timeHorizon: number;
+  color: string;
+}
+
+const PRESETS: Preset[] = [
+  { label: "Black Swan", emoji: "🦢", volatility: 75, eventImpact: -30, timeHorizon: 14, color: "border-red-500/40 text-red-400 bg-red-500/5 hover:bg-red-500/10" },
+  { label: "Earnings Beat", emoji: "📈", volatility: 45, eventImpact: 12, timeHorizon: 30, color: "border-emerald-500/40 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10" },
+  { label: "Fed Shock", emoji: "🏦", volatility: 35, eventImpact: -8, timeHorizon: 90, color: "border-orange-500/40 text-orange-400 bg-orange-500/5 hover:bg-orange-500/10" },
+  { label: "Bull Run", emoji: "🚀", volatility: 28, eventImpact: 20, timeHorizon: 60, color: "border-primary/40 text-primary bg-primary/5 hover:bg-primary/10" },
+  { label: "Rate Cut", emoji: "✂️", volatility: 22, eventImpact: 6, timeHorizon: 45, color: "border-violet-500/40 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10" },
+];
+
+// ─── Ticker Combobox ──────────────────────────────────────────────────────────
+interface TickerOption {
+  symbol: string;
+  name: string;
+  price: number;
+  type: string;
+}
+
+interface TickerComboboxProps {
+  value: string;
+  onChange: (symbol: string, price?: number) => void;
+  options: TickerOption[];
+}
+
+function TickerCombobox({ value, onChange, options }: TickerComboboxProps) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync query display when value changes externally (e.g. clearing)
+  useEffect(() => {
+    if (!value) setQuery("");
+  }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        // If nothing selected, reset
+        if (!options.some(o => o.symbol === value)) {
+          setQuery(value || "");
+        }
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [value, options]);
+
+  const q = query.trim().toUpperCase();
+  const filtered = q
+    ? options.filter(o =>
+        o.symbol.includes(q) ||
+        o.name.toUpperCase().includes(q)
+      )
+    : options;
+
+  const exactMatch = options.find(o => o.symbol === q);
+  const isCustom = q.length > 0 && !exactMatch;
+
+  function select(symbol: string, price?: number) {
+    setQuery(symbol);
+    setOpen(false);
+    onChange(symbol, price);
+  }
+
+  function clear() {
+    setQuery("");
+    onChange("", undefined);
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className={`flex items-center gap-2 bg-black/30 border rounded-lg px-3 h-10 transition-colors ${open ? "border-primary/50 shadow-[0_0_0_1px_rgba(0,212,255,0.2)]" : "border-white/10"}`}>
+        <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <input
+          ref={inputRef}
+          type="text"
+          className="flex-1 bg-transparent outline-none text-sm font-mono text-white placeholder:text-muted-foreground min-w-0"
+          placeholder="Symbol or name… (e.g. DOGE, PLTR, ARB)"
+          value={query}
+          onChange={e => {
+            setQuery(e.target.value.toUpperCase());
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={e => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Enter") {
+              if (filtered.length > 0) {
+                select(filtered[0].symbol, filtered[0].price);
+              } else if (q.length > 0) {
+                select(q);
+              }
+            }
+          }}
+        />
+        {query && (
+          <button onClick={clear} className="text-muted-foreground hover:text-white transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {!query && <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[hsl(222,32%,8%)] border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+          {filtered.length > 0 ? (
+            <>
+              {filtered.map(opt => (
+                <button
+                  key={opt.symbol}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.05] transition-colors text-left"
+                  onMouseDown={e => { e.preventDefault(); select(opt.symbol, opt.price); }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/10 text-muted-foreground bg-white/[0.03]">
+                      {opt.type === "crypto" ? "CRYPTO" : "STOCK"}
+                    </span>
+                    <div>
+                      <div className="text-sm font-mono font-600 text-white">{opt.symbol}</div>
+                      <div className="text-[10px] text-muted-foreground">{opt.name}</div>
+                    </div>
+                  </div>
+                  <div className="text-[12px] font-mono text-primary">${opt.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </button>
+              ))}
+              {isCustom && (
+                <div className="border-t border-white/[0.06]">
+                  <button
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-primary/5 transition-colors text-left"
+                    onMouseDown={e => { e.preventDefault(); select(q); }}
+                  >
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-primary/30 text-primary bg-primary/5">CUSTOM</span>
+                    <div>
+                      <div className="text-sm font-mono font-600 text-white">{q}</div>
+                      <div className="text-[10px] text-muted-foreground">Enter price manually below</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </>
+          ) : q.length > 0 ? (
+            <button
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-primary/5 transition-colors text-left"
+              onMouseDown={e => { e.preventDefault(); select(q); }}
+            >
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-primary/30 text-primary bg-primary/5">CUSTOM</span>
+              <div>
+                <div className="text-sm font-mono font-600 text-white">{q}</div>
+                <div className="text-[10px] text-muted-foreground">Enter price manually below</div>
+              </div>
+            </button>
+          ) : (
+            <div className="px-3 py-4 text-center text-[12px] text-muted-foreground">Type to search</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Simulator() {
   const { data: prices } = useGetMarketPrices();
   const runMonteCarlo = useRunMonteCarlo();
 
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
+  const [customPrice, setCustomPrice] = useState<string>("");
   const [volatility, setVolatility] = useState<number>(20);
   const [eventImpact, setEventImpact] = useState<number>(0);
   const [timeHorizon, setTimeHorizon] = useState<number>(30);
   const [simulations, setSimulations] = useState<number>(1000);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const priceList = Array.isArray(prices) ? prices : [];
-  const selectedPrice = priceList.find((p) => p.symbol === selectedSymbol);
+  const knownAsset = priceList.find(p => p.symbol === selectedSymbol);
+  const isCustomTicker = selectedSymbol.length > 0 && !knownAsset;
+  const effectivePrice = knownAsset?.price ?? parseFloat(customPrice) ?? 0;
 
-  const handleRun = () => {
-    if (!selectedSymbol || !selectedPrice) return;
+  function handleTickerChange(symbol: string, price?: number) {
+    setSelectedSymbol(symbol);
+    if (!price) setCustomPrice("");
+    setActivePreset(null);
+  }
+
+  function applyPreset(preset: Preset) {
+    setVolatility(preset.volatility);
+    setEventImpact(preset.eventImpact);
+    setTimeHorizon(preset.timeHorizon);
+    setActivePreset(preset.label);
+  }
+
+  function handleRun() {
+    const price = effectivePrice;
+    if (!selectedSymbol || !price || price <= 0) return;
     runMonteCarlo.mutate({
       data: {
         symbol: selectedSymbol,
-        currentPrice: selectedPrice.price,
+        currentPrice: price,
         volatility,
         eventImpact,
         timeHorizon,
         simulations,
       },
     });
-  };
+  }
 
   const result = runMonteCarlo.data;
+  const canRun = selectedSymbol.length > 0 && effectivePrice > 0;
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Header */}
       <div>
         <h1 className="font-display text-[22px] font-700 text-white tracking-tight leading-none">Event Simulator</h1>
         <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5 font-mono">
           <Activity className="w-3 h-3 text-primary" />
-          Monte Carlo Forecasting Engine
+          Monte Carlo Forecasting Engine · GBM w/ Event Shock
         </p>
       </div>
 
       {/* Controls */}
       <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
         <CardContent className="p-5 space-y-5">
+
+          {/* Asset search */}
           <div className="space-y-1.5">
             <label className="data-label">Target Asset</label>
-            <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
-              <SelectTrigger className="w-full bg-black/30 border-white/10 h-9 text-sm font-mono">
-                <SelectValue placeholder="Select Asset" />
-              </SelectTrigger>
-              <SelectContent>
-                {priceList.map((p) => (
-                  <SelectItem key={p.symbol} value={p.symbol} className="font-mono">
-                    {p.symbol} — ${p.price.toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <TickerCombobox
+              value={selectedSymbol}
+              onChange={handleTickerChange}
+              options={priceList.map(p => ({ symbol: p.symbol, name: p.name, price: p.price, type: p.type }))}
+            />
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-center">
-              <label className="data-label">Volatility</label>
-              <span className="text-[12px] font-mono text-white">{volatility}%</span>
+          {/* Custom price input — shown only for non-standard tickers */}
+          {isCustomTicker && (
+            <div className="space-y-1.5">
+              <label className="data-label flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 text-amber-400" />
+                Current Price for {selectedSymbol}
+              </label>
+              <div className="flex items-center gap-2 bg-black/30 border border-amber-500/30 rounded-lg px-3 h-10">
+                <span className="text-muted-foreground font-mono text-sm">$</span>
+                <input
+                  type="number"
+                  min="0.000001"
+                  step="any"
+                  className="flex-1 bg-transparent outline-none text-sm font-mono text-white placeholder:text-muted-foreground"
+                  placeholder="e.g. 0.15 or 42000"
+                  value={customPrice}
+                  onChange={e => setCustomPrice(e.target.value)}
+                />
+              </div>
+              <p className="text-[10px] text-amber-400/70 font-mono">
+                {selectedSymbol} is not in the live feed — enter the current price to continue.
+              </p>
             </div>
-            <Slider value={[volatility]} onValueChange={(v) => setVolatility(v[0])} max={100} min={1} step={1} />
+          )}
+
+          {/* Selected asset info bar */}
+          {knownAsset && (
+            <div className="flex items-center justify-between bg-primary/5 border border-primary/15 rounded-lg px-3 py-2">
+              <div className="text-[11px] font-mono text-muted-foreground">{knownAsset.name}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-mono font-600 text-white">${knownAsset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${knownAsset.changePercent >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}>
+                  {knownAsset.changePercent >= 0 ? "+" : ""}{knownAsset.changePercent.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Event presets */}
+          <div className="space-y-2">
+            <label className="data-label">Quick Scenarios</label>
+            <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap">
+              {PRESETS.map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => applyPreset(preset)}
+                  className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border text-[10px] font-semibold tracking-wide transition-all duration-150 ${preset.color} ${activePreset === preset.label ? "ring-1 ring-current/50 scale-[0.97]" : ""}`}
+                >
+                  <span className="text-base leading-none">{preset.emoji}</span>
+                  <span>{preset.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
+          {/* Volatility */}
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
-              <label className="data-label">Event Impact</label>
-              <span className={`text-[12px] font-mono ${eventImpact > 0 ? "text-emerald-400" : eventImpact < 0 ? "text-red-400" : "text-white"}`}>
+              <label className="data-label">Volatility (Annual)</label>
+              <span className={`text-[12px] font-mono ${volatility >= 60 ? "text-red-400" : volatility >= 35 ? "text-amber-400" : "text-white"}`}>{volatility}%</span>
+            </div>
+            <Slider value={[volatility]} onValueChange={(v) => { setVolatility(v[0]); setActivePreset(null); }} max={100} min={1} step={1} />
+            <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
+              <span>Low risk</span><span>Extreme</span>
+            </div>
+          </div>
+
+          {/* Event Impact */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center">
+              <label className="data-label">Event Impact (Day 1 Shock)</label>
+              <span className={`text-[12px] font-mono ${eventImpact > 0 ? "text-emerald-400" : eventImpact < 0 ? "text-red-400" : "text-muted-foreground"}`}>
                 {eventImpact > 0 ? "+" : ""}{eventImpact}%
               </span>
             </div>
-            <Slider value={[eventImpact]} onValueChange={(v) => setEventImpact(v[0])} max={50} min={-50} step={1} />
+            <Slider value={[eventImpact]} onValueChange={(v) => { setEventImpact(v[0]); setActivePreset(null); }} max={50} min={-50} step={1} />
+            <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
+              <span>Crash −50%</span><span>Rally +50%</span>
+            </div>
           </div>
 
+          {/* Time Horizon */}
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
               <label className="data-label">Time Horizon</label>
               <span className="text-[12px] font-mono text-white">{timeHorizon}d</span>
             </div>
-            <Slider value={[timeHorizon]} onValueChange={(v) => setTimeHorizon(v[0])} max={365} min={1} step={1} />
+            <Slider value={[timeHorizon]} onValueChange={(v) => { setTimeHorizon(v[0]); setActivePreset(null); }} max={365} min={1} step={1} />
           </div>
 
+          {/* Simulation paths */}
           <div className="space-y-1.5">
             <label className="data-label">Simulation Paths</label>
-            <Select value={simulations.toString()} onValueChange={(v) => setSimulations(parseInt(v))}>
-              <SelectTrigger className="w-full bg-black/30 border-white/10 h-9 text-sm font-mono">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="500" className="font-mono">500 Paths</SelectItem>
-                <SelectItem value="1000" className="font-mono">1,000 Paths</SelectItem>
-                <SelectItem value="2000" className="font-mono">2,000 Paths</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-3 gap-2">
+              {[500, 1000, 2000].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setSimulations(n)}
+                  className={`py-2 rounded-lg border text-[11px] font-mono font-semibold transition-all ${simulations === n ? "border-primary/50 bg-primary/10 text-primary" : "border-white/10 bg-black/20 text-muted-foreground hover:border-white/20 hover:text-white"}`}
+                >
+                  {n.toLocaleString()}
+                </button>
+              ))}
+            </div>
           </div>
 
           <Button
             className="w-full gap-2 h-10 font-mono"
             onClick={handleRun}
-            disabled={!selectedSymbol || runMonteCarlo.isPending}
+            disabled={!canRun || runMonteCarlo.isPending}
           >
             {runMonteCarlo.isPending ? (
               <>
                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Computing {simulations.toLocaleString()} paths...
+                Running {simulations.toLocaleString()} paths…
               </>
             ) : (
               <>
@@ -122,6 +375,10 @@ export default function Simulator() {
               </>
             )}
           </Button>
+
+          {!canRun && selectedSymbol && isCustomTicker && !effectivePrice && (
+            <p className="text-[10px] text-center text-amber-400/70 font-mono -mt-2">Enter a price above to run simulation</p>
+          )}
         </CardContent>
       </Card>
 
@@ -129,24 +386,37 @@ export default function Simulator() {
       {!result && !runMonteCarlo.isPending && (
         <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
           <BarChart2 className="w-7 h-7 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-[12px] text-muted-foreground">Select an asset and run a simulation.</p>
+          <p className="text-[12px] text-muted-foreground">Select an asset and configure a scenario to begin.</p>
+          <p className="text-[11px] text-muted-foreground/50 mt-1">Supports stocks, crypto, and any custom ticker.</p>
         </div>
       )}
 
       {/* Results */}
       {result && (
         <div className="space-y-4">
-          {/* Key stats */}
+          {/* Header strip */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-display text-[14px] font-700 text-white">{result.symbol}</span>
+              <span className="ml-2 text-[10px] font-mono text-muted-foreground">{result.simulations.toLocaleString()} paths · {timeHorizon}d horizon</span>
+            </div>
+            <div className={`text-[12px] font-mono font-600 px-2 py-1 rounded-lg border ${result.expectedReturn >= 0 ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/8" : "text-red-400 border-red-500/25 bg-red-500/8"}`}>
+              {result.expectedReturn >= 0 ? "+" : ""}{(result.expectedReturn * 100).toFixed(2)}% E[R]
+            </div>
+          </div>
+
+          {/* Key stats grid */}
           <div className="grid grid-cols-2 gap-3">
             <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="data-label mb-2">Median Forecast</div>
-                <div className="stat-number text-white">${result.median.toFixed(2)}</div>
+                <div className="stat-number text-white">${result.median.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               </CardContent>
             </Card>
+
             <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
               <CardContent className="p-4">
-                <div className="data-label mb-2">Bull / Bear Split</div>
+                <div className="data-label mb-2">Bull / Bear</div>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-[20px] font-mono font-600 text-emerald-400">{(result.bullishProbability * 100).toFixed(0)}%</span>
                   <span className="text-muted-foreground font-mono text-sm">/</span>
@@ -154,14 +424,45 @@ export default function Simulator() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="data-label mb-2">1-Day 95% VaR</div>
+                <div className="stat-number text-amber-400">
+                  −${result.var95.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-[9px] font-mono text-muted-foreground mt-1">per unit held</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="data-label mb-2">Max Drawdown</div>
+                <div className="stat-number text-red-400">
+                  −{(result.maxDrawdown * 100).toFixed(1)}%
+                </div>
+                <div className="text-[9px] font-mono text-muted-foreground mt-1">worst simulated path</div>
+              </CardContent>
+            </Card>
+
             <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm col-span-2">
               <CardContent className="p-4">
-                <div className="data-label mb-2">P10 — P90 Range</div>
+                <div className="data-label mb-3">P10 — P90 Range</div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[18px] font-mono font-600 text-red-400/80">${result.p10.toFixed(0)}</span>
-                  <div className="flex-1 h-1 bg-gradient-to-r from-red-500/30 via-primary/40 to-emerald-500/30 rounded-full" />
-                  <span className="text-[18px] font-mono font-600 text-emerald-400/80">${result.p90.toFixed(0)}</span>
+                  <span className="text-[16px] font-mono font-600 text-red-400/80">${result.p10.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <div className="flex-1 relative h-1.5 bg-gradient-to-r from-red-500/30 via-primary/40 to-emerald-500/30 rounded-full">
+                    {effectivePrice > 0 && result.p90 > result.p10 && (
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]"
+                        style={{ left: `${Math.max(2, Math.min(96, ((effectivePrice - result.p10) / (result.p90 - result.p10)) * 92 + 2))}%` }}
+                      />
+                    )}
+                  </div>
+                  <span className="text-[16px] font-mono font-600 text-emerald-400/80">${result.p90.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                 </div>
+                {effectivePrice > 0 && (
+                  <div className="text-[9px] font-mono text-amber-400 text-center mt-1.5">● Entry: ${effectivePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -190,8 +491,8 @@ export default function Simulator() {
                       stroke="#ffffff30"
                       fontSize={9}
                       fontFamily="JetBrains Mono"
-                      tickFormatter={(v) => `$${v}`}
-                      width={52}
+                      tickFormatter={(v) => `$${Number(v).toLocaleString()}`}
+                      width={58}
                     />
                     {result.paths.slice(0, 40).map((path, i) => (
                       <Line
@@ -212,7 +513,7 @@ export default function Simulator() {
             </CardContent>
           </Card>
 
-          {/* Percentile distribution */}
+          {/* Percentile bar */}
           <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="data-label mb-3">Percentile Distribution</div>
@@ -226,7 +527,7 @@ export default function Simulator() {
                 ].map((p) => (
                   <div key={p.label}>
                     <div className={`text-[9px] font-mono font-semibold tracking-widest ${p.color} mb-1`}>{p.label}</div>
-                    <div className={`text-[10px] font-mono text-white`}>${p.value.toFixed(0)}</div>
+                    <div className="text-[10px] font-mono text-white">${Number(p.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 ))}
               </div>
@@ -237,19 +538,19 @@ export default function Simulator() {
                 <div className="h-full bg-primary/20 border-l border-white/30" style={{ width: "25%" }} />
                 <div className="h-full bg-emerald-500/10 border-l border-white/10" style={{ width: "15%" }} />
                 <div className="h-full bg-emerald-500/25 border-l border-white/5" style={{ width: "10%" }} />
-                {selectedPrice && (
+                {effectivePrice > 0 && result.p90 > result.p10 && (
                   <div
                     className="absolute top-0 bottom-0 w-0.5 bg-amber-400 z-10"
                     style={{
-                      left: `${Math.max(2, Math.min(98, ((selectedPrice.price - result.p10) / (result.p90 - result.p10)) * 80 + 10))}%`,
+                      left: `${Math.max(2, Math.min(98, ((effectivePrice - result.p10) / (result.p90 - result.p10)) * 80 + 10))}%`,
                       boxShadow: "0 0 6px rgba(251,191,36,0.8)",
                     }}
                   />
                 )}
               </div>
-              {selectedPrice && (
+              {effectivePrice > 0 && (
                 <div className="text-[9px] font-mono text-amber-400 text-center mt-1.5">
-                  ▲ Current: ${selectedPrice.price.toFixed(2)}
+                  ▲ Entry: ${effectivePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               )}
             </CardContent>

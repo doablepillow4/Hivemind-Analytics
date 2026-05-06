@@ -23,9 +23,14 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
   const paths: number[][] = [];
   const finalPrices: number[] = [];
 
+  // Track max drawdown across all simulated paths
+  let worstDrawdown = 0;
+
   for (let sim = 0; sim < numSims; sim++) {
     const path: number[] = [currentPrice];
     let price = currentPrice;
+    let peakPrice = currentPrice;
+    let simDrawdown = 0;
 
     for (let step = 0; step < steps; step++) {
       const u1 = Math.random();
@@ -33,17 +38,27 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
       const z = Math.sqrt(-2 * Math.log(Math.max(u1, 1e-10))) * Math.cos(2 * Math.PI * u2);
       const eventShock = step === 0 ? impact : 0;
       price = price * Math.exp((drift - 0.5 * vol * vol) * dt + vol * Math.sqrt(dt) * z + eventShock);
+      if (price > peakPrice) peakPrice = price;
+      const dd = (peakPrice - price) / peakPrice;
+      if (dd > simDrawdown) simDrawdown = dd;
       path.push(parseFloat(price.toFixed(2)));
     }
 
     finalPrices.push(price);
+    if (simDrawdown > worstDrawdown) worstDrawdown = simDrawdown;
     if (sim < MAX_PATHS) paths.push(path);
   }
 
   finalPrices.sort((a, b) => a - b);
   const p = (pct: number) => finalPrices[Math.floor((pct / 100) * finalPrices.length)];
   const mean = finalPrices.reduce((a, b) => a + b, 0) / finalPrices.length;
-  const bullish = finalPrices.filter((p) => p > currentPrice).length;
+  const bullish = finalPrices.filter((v) => v > currentPrice).length;
+
+  // 1-day 95% VaR using parametric method (1.645 σ)
+  const var95 = currentPrice * vol * Math.sqrt(dt) * 1.6449;
+
+  // Expected return as a fraction of currentPrice
+  const expectedReturn = currentPrice > 0 ? (mean - currentPrice) / currentPrice : 0;
 
   const result = {
     symbol,
@@ -56,6 +71,9 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
     p90: parseFloat(p(90).toFixed(2)),
     bullishProbability: parseFloat((bullish / numSims).toFixed(3)),
     bearishProbability: parseFloat(((numSims - bullish) / numSims).toFixed(3)),
+    var95: parseFloat(var95.toFixed(2)),
+    maxDrawdown: parseFloat(worstDrawdown.toFixed(4)),
+    expectedReturn: parseFloat(expectedReturn.toFixed(4)),
     paths,
   };
 
