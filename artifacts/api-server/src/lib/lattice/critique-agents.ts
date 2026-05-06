@@ -80,6 +80,7 @@ export function runDevilsAdvocate(
     probability: parseFloat(adjustedProb.toFixed(4)),
     confidence: clamp(0.55 + Math.abs(adjustedProb - 0.5)),
     rationale: [
+      "Role: consensus skeptic",
       `Devil's Advocate review of ${hypothesisTokens.length} hypothesis tokens`,
       finalChallenge,
       `Confidence adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`,
@@ -154,7 +155,7 @@ export function runTailRiskAgent(
     hypothesis: adjustedProb > 0.54 ? "bullish" : adjustedProb < 0.46 ? "bearish" : "neutral",
     probability: parseFloat(adjustedProb.toFixed(4)),
     confidence: clamp(0.5 + Math.abs(adjustedProb - 0.5) * 0.8),
-    rationale: ["Tail Risk & Geopolitical Assessment", ...challenges, `Net confidence adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`],
+    rationale: ["Role: tail-risk and geopolitical analyst", "Tail Risk & Geopolitical Assessment", ...challenges, `Net confidence adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`],
     shapHive: hive.geoPressure,
     shapAi: 0,
     shapGeo: 1,

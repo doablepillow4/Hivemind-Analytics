@@ -60,6 +60,7 @@ export function runMetaAgent(
     probability: parseFloat(probability.toFixed(4)),
     confidence: parseFloat(confidence.toFixed(4)),
     rationale: [
+      "Role: final verdict and regime calibration",
       `Meta-agent regime calibration applied: ${regime.regime} multiplier ${((regimeMultiplier - 1) * 100).toFixed(0)}%`,
       `Hivemind Score: ${hivemindScore.toFixed(0)}/100 (${regime.regime} regime penalty: ${regimePenalty} pts)`,
       `Final target price: $${targetPrice.toFixed(2)} (${(expectedMovePct * 100).toFixed(1)}% ${direction === "bullish" ? "upside" : direction === "bearish" ? "downside" : "flat"} expected over ${timeframe})`,

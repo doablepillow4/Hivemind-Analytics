@@ -92,6 +92,7 @@ export function synthesize(
     probability: parseFloat(finalProb.toFixed(4)),
     confidence: parseFloat(confidence.toFixed(4)),
     rationale: [
+      "Role: Bayesian fusion and calibration",
       `Reputation-weighted Bayesian fusion of ${allInputTokens.length} belief tokens`,
       `Platt-scaled probability: ${(finalProb * 100).toFixed(1)}% ${direction}`,
       `Agent consensus: ${(agentConsensus * 100).toFixed(0)}% aligned on ${dominantDir}`,
