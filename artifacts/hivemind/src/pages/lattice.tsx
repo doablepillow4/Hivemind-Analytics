@@ -280,6 +280,7 @@ function DebateAgentCard({
   onUpvote,
   challengeResult,
   onChallenge,
+  onSelect,
 }: {
   token: BeliefToken;
   symbol: string;
@@ -287,6 +288,7 @@ function DebateAgentCard({
   onUpvote: () => void;
   challengeResult?: ChallengeResult & { loading?: boolean };
   onChallenge: (text: string, prob: number) => void;
+  onSelect?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showChallenge, setShowChallenge] = useState(false);
@@ -304,7 +306,11 @@ function DebateAgentCard({
   }
 
   return (
-    <div className={`rounded-xl border ${p.borderColor} bg-black/20 overflow-hidden`}>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full text-left rounded-xl border ${p.borderColor} bg-black/20 overflow-hidden`}
+    >
       {/* Header */}
       <div className="p-3.5 flex items-start gap-3">
         <span className="text-2xl leading-none mt-0.5">{p.emoji}</span>
@@ -428,7 +434,7 @@ function DebateAgentCard({
           R{token.round} · {token.id.slice(0, 6)}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -588,6 +594,7 @@ function DebatePhase({
             onUpvote={() => onUpvote(token.agentType)}
             challengeResult={challenges[token.agentType]}
             onChallenge={(text, prob) => onChallenge(token.agentType, text, prob)}
+            onSelect={() => onChallenge(token.agentType, `Explain your current thesis on ${symbol} in more detail.`, token.probability)}
           />
         ))}
       </div>
@@ -714,6 +721,7 @@ function DebateView({
                 onUpvote={() => {}}
                 challengeResult={undefined}
                 onChallenge={() => {}}
+                onSelect={() => {}}
               />
             ))}
           </div>
@@ -867,6 +875,7 @@ export default function Lattice() {
   }
 
   const DEBATE_AGENTS = ["hypothesis_momentum", "hypothesis_meanrevert", "hypothesis_volregime", "hypothesis_hive", "critique_devil", "critique_tailrisk"];
+  const TIMEFRAMES = ["15m", "30m", "1h", "6h", "12h", "1d", "7d"];
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -912,9 +921,9 @@ export default function Lattice() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1d" className="font-mono">1D</SelectItem>
-            <SelectItem value="7d" className="font-mono">7D</SelectItem>
-            <SelectItem value="30d" className="font-mono">30D</SelectItem>
+            {TIMEFRAMES.map((t) => (
+              <SelectItem key={t} value={t} className="font-mono">{t.toUpperCase()}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
