@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import {
-  GetMarketPricesResponse,
+  GetMarketPricesResponseItem,
   GetMarketHistoryParams,
   GetMarketHistoryQueryParams,
   GetMarketHistoryResponse,
@@ -13,6 +13,7 @@ import {
   STOCK_SYMBOL_LIST,
   CRYPTO_ID_MAP,
 } from "../lib/market-data";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -22,14 +23,25 @@ router.get("/market/prices", async (req, res): Promise<void> => {
     ...STOCK_SYMBOL_LIST.map((s) => fetchStockPrice(s)),
   ]);
 
-  const prices: unknown[] = [];
+  const raw: unknown[] = [];
 
-  if (cryptos.status === "fulfilled") prices.push(...cryptos.value);
+  if (cryptos.status === "fulfilled") raw.push(...cryptos.value);
   for (const stock of stocks) {
-    if (stock.status === "fulfilled") prices.push(stock.value);
+    if (stock.status === "fulfilled") raw.push(stock.value);
   }
 
-  res.json(GetMarketPricesResponse.parse(prices));
+  const prices = raw
+    .map((item) => {
+      const parsed = GetMarketPricesResponseItem.safeParse(item);
+      if (!parsed.success) {
+        logger.warn({ item, error: parsed.error.message }, "Skipping invalid market price entry");
+        return null;
+      }
+      return parsed.data;
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  res.json(prices);
 });
 
 router.get("/market/history/:symbol", async (req, res): Promise<void> => {
