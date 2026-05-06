@@ -109,6 +109,8 @@ export async function runLattice(
 ): Promise<LatticeResult> {
   const runId = nanoid(12);
   const version = useV3 ? "v3" : "v2";
+  const t0 = Date.now();
+
   logger.info({ symbol, timeframe, runId, version }, "HPL lattice run started");
 
   const isCrypto = symbol in CRYPTO_ID_MAP;
@@ -130,8 +132,12 @@ export async function runLattice(
       const sp = await fetchStockPrice(symbol);
       currentPrice = sp.price;
     }
+    logger.debug(
+      { symbol, runId, closes: closes.length, currentPrice, isCrypto },
+      "HPL market data loaded",
+    );
   } catch (err) {
-    logger.warn({ symbol, err }, "Could not fetch live data for lattice, using synthetic");
+    logger.warn({ symbol, runId, err }, "Could not fetch live data for lattice, using synthetic");
     closes = Array.from(
       { length: 40 },
       (_, i) => currentPrice * (1 + Math.sin(i * 0.4) * 0.03 + (Math.random() - 0.5) * 0.01),
@@ -144,6 +150,10 @@ export async function runLattice(
   }
 
   const regime = detectRegime(closes);
+  logger.debug(
+    { symbol, runId, regime: regime.regime, regimeScore: regime.regimeScore, volatility: regime.volatility },
+    "HPL regime detected",
+  );
 
   const { getNewsContextForSymbol } = await import("../news");
 
@@ -159,6 +169,20 @@ export async function runLattice(
     useV3 ? loadBeliefState(symbol) : Promise.resolve(null),
   ]);
 
+  logger.debug(
+    {
+      symbol,
+      runId,
+      hiveProbability: hive.probability,
+      hiveConfidence: hive.confidence,
+      liquidityScore: hive.liquidityScore,
+      geoPressure: hive.geoPressure,
+      newsSentiment: newsContext.sentiment,
+      breakingAlert: newsContext.breakingAlert,
+    },
+    "HPL hive + news context loaded",
+  );
+
   const features: TechnicalFeatures = {
     rsi: computeRSI(closes),
     macdHistogram: computeMACDHistogram(closes),
@@ -172,6 +196,19 @@ export async function runLattice(
       closes.length >= 5 ? (closes[closes.length - 1] / closes[closes.length - 5] - 1) * 100 : 0,
     volatility: regime.volatility,
   };
+
+  logger.debug(
+    {
+      symbol,
+      runId,
+      rsi: features.rsi.toFixed(1),
+      macd: features.macdHistogram.toFixed(4),
+      bollingerB: features.bollingerPercentB.toFixed(2),
+      maCross: features.maCross.toFixed(2),
+      momentum5d: features.momentum5d.toFixed(2),
+    },
+    "HPL technical features computed",
+  );
 
   const hiveToken = {
     id: nanoid(8),
@@ -195,6 +232,9 @@ export async function runLattice(
     parentIds: [],
   };
 
+  // ─── Round 1: Hypothesis agents ────────────────────────────────────────────
+  logger.debug({ symbol, runId, round: 1 }, "HPL hypothesis round started");
+
   const momToken = momentumAgent(features, regime, [hiveToken.id], symbol, timeframe);
   const meanToken = meanReversionAgent(features, regime, [hiveToken.id], symbol, timeframe);
   const volToken = volRegimeAgent(features, regime, [hiveToken.id], symbol, timeframe);
@@ -202,9 +242,27 @@ export async function runLattice(
 
   const hypothesisTokens = [momToken, meanToken, volToken, hiveWisToken];
 
+  logger.info(
+    {
+      symbol,
+      runId,
+      round: 1,
+      agents: hypothesisTokens.map((t) => ({
+        type: t.agentType,
+        hypothesis: t.hypothesis,
+        probability: t.probability.toFixed(4),
+        confidence: t.confidence.toFixed(4),
+      })),
+    },
+    "HPL hypothesis round complete",
+  );
+
   for (const t of hypothesisTokens) {
     persistAgentRun(t.agentType).catch(() => {});
   }
+
+  // ─── Round 2: Critique agents ───────────────────────────────────────────────
+  logger.debug({ symbol, runId, round: 2 }, "HPL critique round started");
 
   const devilResult = runDevilsAdvocate(
     hypothesisTokens,
@@ -225,10 +283,45 @@ export async function runLattice(
     newsContext,
   );
 
-  const agentReputations = await getAgentReputations();
+  logger.info(
+    {
+      symbol,
+      runId,
+      round: 2,
+      devilAdjustment: devilResult.adjustedProb.toFixed(4),
+      tailRiskTokens: tailResult.tokens.length,
+      debateRounds: [...devilResult.rounds, ...tailResult.rounds].length,
+    },
+    "HPL critique round complete",
+  );
 
+  // ─── Round 3: Synthesis ────────────────────────────────────────────────────
+  logger.debug({ symbol, runId, round: 3 }, "HPL synthesis started");
+
+  const agentReputations = await getAgentReputations();
   const critiqueTokens = [...devilResult.tokens, ...tailResult.tokens];
   const synthesis = synthesize(hypothesisTokens, critiqueTokens, agentReputations);
+
+  logger.info(
+    {
+      symbol,
+      runId,
+      round: 3,
+      probability: synthesis.token.probability.toFixed(4),
+      hypothesis: synthesis.token.hypothesis,
+      agentConsensus: synthesis.agentConsensus.toFixed(2),
+      shap: {
+        hive: synthesis.shap.hive.toFixed(2),
+        ai: synthesis.shap.ai.toFixed(2),
+        geo: synthesis.shap.geo.toFixed(2),
+      },
+      minorityReport: synthesis.minorityReport !== null,
+    },
+    "HPL synthesis complete",
+  );
+
+  // ─── Round 4: Meta agent ────────────────────────────────────────────────────
+  logger.debug({ symbol, runId, round: 4 }, "HPL meta-agent started");
 
   const meta = runMetaAgent(
     synthesis.token,
@@ -240,6 +333,19 @@ export async function runLattice(
     timeframe,
     currentPrice,
     [synthesis.token.id],
+  );
+
+  logger.info(
+    {
+      symbol,
+      runId,
+      round: 4,
+      direction: meta.finalPrediction.direction,
+      targetPrice: meta.finalPrediction.targetPrice,
+      hivemindScore: meta.finalPrediction.hivemindScore.toFixed(1),
+      confidence: meta.finalPrediction.confidence.toFixed(4),
+    },
+    "HPL meta-agent complete",
   );
 
   const allTokens = [
@@ -288,15 +394,17 @@ export async function runLattice(
         {
           symbol,
           runId,
-          delta: dynamics.delta,
-          momentum: dynamics.momentum,
+          delta: dynamics.delta.toFixed(4),
+          momentum: dynamics.momentum.toFixed(4),
+          acceleration: dynamics.acceleration.toFixed(4),
+          stability: dynamics.stability.toFixed(2),
           convictionShift: dynamics.convictionShift,
           sessionCount: dynamics.sessionCount,
         },
         "HPL-HPA v3 belief dynamics computed",
       );
     } catch (err) {
-      logger.warn({ err, symbol }, "v3 belief dynamics failed — result returned without dynamics");
+      logger.warn({ err, symbol, runId }, "v3 belief dynamics failed — result returned without dynamics");
     }
   }
 
@@ -321,15 +429,20 @@ export async function runLattice(
       createdAt: new Date(),
     });
   } catch (err) {
-    logger.warn({ err }, "Failed to persist lattice run");
+    logger.warn({ err, runId }, "Failed to persist lattice run");
   }
+
+  const durationMs = Date.now() - t0;
 
   logger.info(
     {
       symbol,
       runId,
       direction: meta.finalPrediction.direction,
-      score: meta.finalPrediction.hivemindScore,
+      hivemindScore: meta.finalPrediction.hivemindScore.toFixed(1),
+      agentConsensus: synthesis.agentConsensus.toFixed(2),
+      totalTokens: allTokens.length,
+      durationMs,
       version,
     },
     "HPL lattice run complete",

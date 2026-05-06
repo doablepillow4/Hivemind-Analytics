@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { HttpError } from "./lib/http-error";
 
 const app: Express = express();
 
@@ -32,6 +33,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof HttpError) {
+    logger.warn({ statusCode: err.statusCode, code: err.code, err }, "HTTP error");
+    res.status(err.statusCode).json({
+      error: err.message,
+      ...(err.code ? { code: err.code } : {}),
+    });
+    return;
+  }
+
   logger.error({ err }, "Unhandled error");
   const message = err instanceof Error ? err.message : "Internal server error";
   res.status(500).json({ error: message });
