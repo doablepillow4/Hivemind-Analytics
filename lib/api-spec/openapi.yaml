@@ -395,7 +395,18 @@ components:
         resolvedAt:
           type: string
           nullable: true
-      required: [id, symbol, direction, targetPrice, currentPrice, confidence, timeframe, signals, createdAt]
+      required:
+        [
+          id,
+          symbol,
+          direction,
+          targetPrice,
+          currentPrice,
+          confidence,
+          timeframe,
+          signals,
+          createdAt,
+        ]
 
     Signal:
       type: object
@@ -439,7 +450,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SymbolAccuracy"
-      required: [totalPredictions, correctPredictions, accuracy, averageConfidence, recentAccuracy, improvementTrend, bySymbol]
+      required:
+        [
+          totalPredictions,
+          correctPredictions,
+          accuracy,
+          averageConfidence,
+          recentAccuracy,
+          improvementTrend,
+          bySymbol,
+        ]
 
     SymbolAccuracy:
       type: object
@@ -515,7 +535,23 @@ components:
           nullable: true
           items:
             $ref: "#/components/schemas/GeoMarketSignal"
-      required: [symbol, simulations, median, mean, p10, p25, p75, p90, bullishProbability, bearishProbability, var95, maxDrawdown, expectedReturn, paths]
+      required:
+        [
+          symbol,
+          simulations,
+          median,
+          mean,
+          p10,
+          p25,
+          p75,
+          p90,
+          bullishProbability,
+          bearishProbability,
+          var95,
+          maxDrawdown,
+          expectedReturn,
+          paths,
+        ]
 
     GeoMarketSignal:
       type: object
@@ -614,7 +650,20 @@ components:
           nullable: true
           items:
             $ref: "#/components/schemas/PolymarketIntelItem"
-      required: [runId, symbol, timeframe, regime, regimeScore, tokens, debateRounds, shap, finalPrediction, causalNarrative, agentConsensus]
+      required:
+        [
+          runId,
+          symbol,
+          timeframe,
+          regime,
+          regimeScore,
+          tokens,
+          debateRounds,
+          shap,
+          finalPrediction,
+          causalNarrative,
+          agentConsensus,
+        ]
 
     PolymarketIntelItem:
       type: object
@@ -669,7 +718,21 @@ components:
           type: array
           items:
             type: string
-      required: [id, agentType, round, hypothesis, probability, confidence, rationale, shapHive, shapAi, shapGeo, liquidityScore, parentIds]
+      required:
+        [
+          id,
+          agentType,
+          round,
+          hypothesis,
+          probability,
+          confidence,
+          rationale,
+          shapHive,
+          shapAi,
+          shapGeo,
+          liquidityScore,
+          parentIds,
+        ]
 
     DebateRound:
       type: object

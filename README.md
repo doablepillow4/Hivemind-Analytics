@@ -17,17 +17,17 @@ A premium dark-themed predictive analytics platform combining live market data, 
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js 24, TypeScript 5.9 |
-| Frontend | React 19, Vite 7, Tailwind CSS v4, shadcn/ui, Recharts, Zustand |
-| Routing | Wouter |
-| API | Express 5, Pino logging |
-| Database | PostgreSQL + Drizzle ORM |
-| Validation | Zod v4, drizzle-zod |
-| API Contract | OpenAPI 3.1 → Orval codegen (React Query hooks + Zod schemas) |
-| Package Manager | pnpm workspaces |
-| Build | esbuild (API), Vite (frontend) |
+| Layer           | Technology                                                      |
+| --------------- | --------------------------------------------------------------- |
+| Runtime         | Node.js 24, TypeScript 5.9                                      |
+| Frontend        | React 19, Vite 7, Tailwind CSS v4, shadcn/ui, Recharts, Zustand |
+| Routing         | Wouter                                                          |
+| API             | Express 5, Pino logging                                         |
+| Database        | PostgreSQL + Drizzle ORM                                        |
+| Validation      | Zod v4, drizzle-zod                                             |
+| API Contract    | OpenAPI 3.1 → Orval codegen (React Query hooks + Zod schemas)   |
+| Package Manager | pnpm workspaces                                                 |
+| Build           | esbuild (API), Vite (frontend)                                  |
 
 ---
 
@@ -106,9 +106,9 @@ The frontend expects the API at `http://localhost:8080`. Open `http://localhost:
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string, e.g. `postgresql://user:pass@localhost:5432/hivemind` |
+| Variable       | Required | Description                                                                         |
+| -------------- | -------- | ----------------------------------------------------------------------------------- |
+| `DATABASE_URL` | Yes      | PostgreSQL connection string, e.g. `postgresql://user:pass@localhost:5432/hivemind` |
 
 See `.env.example` for a template.
 
@@ -118,15 +118,15 @@ See `.env.example` for a template.
 
 ## Key Commands
 
-| Command | Description |
-|---|---|
-| `pnpm install` | Install all workspace dependencies |
-| `pnpm --filter @workspace/api-server run dev` | Start API server (port 8080) |
-| `pnpm --filter @workspace/hivemind run dev` | Start frontend dev server |
-| `pnpm run typecheck` | Full TypeScript check across all packages |
-| `pnpm run build` | Typecheck + build all packages |
-| `pnpm --filter @workspace/db run push` | Push Drizzle schema to the database |
-| `pnpm --filter @workspace/api-spec run codegen` | Regenerate API hooks from OpenAPI spec |
+| Command                                         | Description                               |
+| ----------------------------------------------- | ----------------------------------------- |
+| `pnpm install`                                  | Install all workspace dependencies        |
+| `pnpm --filter @workspace/api-server run dev`   | Start API server (port 8080)              |
+| `pnpm --filter @workspace/hivemind run dev`     | Start frontend dev server                 |
+| `pnpm run typecheck`                            | Full TypeScript check across all packages |
+| `pnpm run build`                                | Typecheck + build all packages            |
+| `pnpm --filter @workspace/db run push`          | Push Drizzle schema to the database       |
+| `pnpm --filter @workspace/api-spec run codegen` | Regenerate API hooks from OpenAPI spec    |
 
 ---
 
@@ -134,23 +134,23 @@ See `.env.example` for a template.
 
 The full API contract lives in [`lib/api-spec/openapi.yaml`](lib/api-spec/openapi.yaml). Key endpoints:
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/healthz` | Health check |
-| `GET` | `/market/prices` | All tracked stock + crypto prices |
-| `GET` | `/market/quote/:symbol` | Live quote for any stock or crypto |
-| `GET` | `/market/history/:symbol` | Historical price data |
-| `GET` | `/predictions` | Stored predictions |
-| `GET` | `/predictions/summary` | Model accuracy summary |
-| `POST` | `/predictions` | Generate a new AI prediction |
-| `POST` | `/simulator/monte-carlo` | Run a Monte Carlo simulation |
-| `GET` | `/polymarket/markets` | Polymarket prediction market data |
-| `GET` | `/news` | News feed with Polymarket odds matched |
-| `POST` | `/lattice/run` | Run the HPL-HPA v2 multi-agent engine |
-| `POST` | `/lattice/challenge` | Challenge an agent with new information |
-| `GET` | `/lattice/agents` | Agent reputation scores |
-| `GET` | `/lattice/regime` | Current market regime |
-| `POST` | `/lattice/train` | Run a Brier-score training cycle |
+| Method | Path                      | Description                             |
+| ------ | ------------------------- | --------------------------------------- |
+| `GET`  | `/healthz`                | Health check                            |
+| `GET`  | `/market/prices`          | All tracked stock + crypto prices       |
+| `GET`  | `/market/quote/:symbol`   | Live quote for any stock or crypto      |
+| `GET`  | `/market/history/:symbol` | Historical price data                   |
+| `GET`  | `/predictions`            | Stored predictions                      |
+| `GET`  | `/predictions/summary`    | Model accuracy summary                  |
+| `POST` | `/predictions`            | Generate a new AI prediction            |
+| `POST` | `/simulator/monte-carlo`  | Run a Monte Carlo simulation            |
+| `GET`  | `/polymarket/markets`     | Polymarket prediction market data       |
+| `GET`  | `/news`                   | News feed with Polymarket odds matched  |
+| `POST` | `/lattice/run`            | Run the HPL-HPA v2 multi-agent engine   |
+| `POST` | `/lattice/challenge`      | Challenge an agent with new information |
+| `GET`  | `/lattice/agents`         | Agent reputation scores                 |
+| `GET`  | `/lattice/regime`         | Current market regime                   |
+| `POST` | `/lattice/train`          | Run a Brier-score training cycle        |
 
 ---
 

@@ -13,7 +13,14 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
     return;
   }
 
-  const { symbol, currentPrice, volatility, eventImpact, timeHorizon, simulations = 1000 } = parsed.data;
+  const {
+    symbol,
+    currentPrice,
+    volatility,
+    eventImpact,
+    timeHorizon,
+    simulations = 1000,
+  } = parsed.data;
 
   const dt = 1 / 252;
   const drift = 0;
@@ -39,7 +46,8 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
       const u2 = Math.random();
       const z = Math.sqrt(-2 * Math.log(Math.max(u1, 1e-10))) * Math.cos(2 * Math.PI * u2);
       const eventShock = step === 0 ? impact : 0;
-      price = price * Math.exp((drift - 0.5 * vol * vol) * dt + vol * Math.sqrt(dt) * z + eventShock);
+      price =
+        price * Math.exp((drift - 0.5 * vol * vol) * dt + vol * Math.sqrt(dt) * z + eventShock);
       if (price > peakPrice) peakPrice = price;
       const dd = (peakPrice - price) / peakPrice;
       if (dd > simDrawdown) simDrawdown = dd;
@@ -52,7 +60,8 @@ router.post("/simulator/monte-carlo", async (req, res): Promise<void> => {
   }
 
   finalPrices.sort((a, b) => a - b);
-  const p = (pct: number) => finalPrices[Math.max(0, Math.floor((pct / 100) * finalPrices.length) - 1)] ?? finalPrices[0];
+  const p = (pct: number) =>
+    finalPrices[Math.max(0, Math.floor((pct / 100) * finalPrices.length) - 1)] ?? finalPrices[0];
   const mean = finalPrices.reduce((a, b) => a + b, 0) / finalPrices.length;
   const bullish = finalPrices.filter((v) => v > currentPrice).length;
 

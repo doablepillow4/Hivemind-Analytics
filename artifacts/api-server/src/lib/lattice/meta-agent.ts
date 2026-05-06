@@ -1,4 +1,11 @@
-import type { BeliefToken, LatticePrediction, RegimeContext, ShapBreakdown, Direction, BeliefDynamics } from "./types";
+import type {
+  BeliefToken,
+  LatticePrediction,
+  RegimeContext,
+  ShapBreakdown,
+  Direction,
+  BeliefDynamics,
+} from "./types";
 import { nanoid } from "nanoid";
 import { describeRegime } from "./regime-detector";
 
@@ -22,30 +29,29 @@ export function runMetaAgent(
   timeframe: string,
   currentPrice: number,
   parentIds: string[],
-  beliefDynamics?: BeliefDynamics
+  beliefDynamics?: BeliefDynamics,
 ): MetaOutput {
   let probability = synthesisToken.probability;
 
   const regimeMultiplier =
-    regime.regime === "calm" ? 1.05
-    : regime.regime === "volatile" ? 0.92
-    : 0.78;
+    regime.regime === "calm" ? 1.05 : regime.regime === "volatile" ? 0.92 : 0.78;
 
   probability = clamp(probability * (probability > 0.5 ? regimeMultiplier : 2 - regimeMultiplier));
 
   const hivemindRaw = Math.abs(probability - 0.5) * 200;
-  const regimePenalty =
-    regime.regime === "calm" ? 0
-    : regime.regime === "volatile" ? 8
-    : 18;
+  const regimePenalty = regime.regime === "calm" ? 0 : regime.regime === "volatile" ? 8 : 18;
   const hivemindScore = Math.max(5, Math.min(99, hivemindRaw - regimePenalty));
 
   const direction: Direction =
     probability > 0.54 ? "bullish" : probability < 0.46 ? "bearish" : "neutral";
   const confidence = synthesisToken.confidence;
 
-  const days = { "15m": 1/96, "30m": 1/48, "1h": 1/24, "6h": 0.25, "12h": 0.5, "1d": 1, "7d": 7 }[timeframe] ?? 30;
-  const expectedMovePct = (regime.volatility * Math.sqrt(days / 252) * (direction === "neutral" ? 0 : 1));
+  const days =
+    { "15m": 1 / 96, "30m": 1 / 48, "1h": 1 / 24, "6h": 0.25, "12h": 0.5, "1d": 1, "7d": 7 }[
+      timeframe
+    ] ?? 30;
+  const expectedMovePct =
+    regime.volatility * Math.sqrt(days / 252) * (direction === "neutral" ? 0 : 1);
   const targetPrice =
     direction === "bullish"
       ? currentPrice * (1 + expectedMovePct)
@@ -118,7 +124,7 @@ interface NarrativeParams {
 function buildNarrative(p: NarrativeParams): string {
   const regimeDesc = describeRegime(p.regime.regime, p.regime.volatility);
   const consensusPct = (p.agentConsensus * 100).toFixed(0);
-  const priceDelta = ((p.targetPrice - p.currentPrice) / p.currentPrice * 100).toFixed(1);
+  const priceDelta = (((p.targetPrice - p.currentPrice) / p.currentPrice) * 100).toFixed(1);
   const hivePct = (p.shap.hive * 100).toFixed(0);
   const aiPct = (p.shap.ai * 100).toFixed(0);
   const geoPct = (p.shap.geo * 100).toFixed(0);
@@ -134,12 +140,15 @@ function buildNarrative(p: NarrativeParams): string {
       : `Geopolitical risk is contained at ${geoPct}% of signal weight.`;
 
   const hiveMarketNote =
-    p.hiveRelevantMarkets.length > 0 && p.hiveRelevantMarkets[0] !== "Fallback signal — live data unavailable"
+    p.hiveRelevantMarkets.length > 0 &&
+    p.hiveRelevantMarkets[0] !== "Fallback signal — live data unavailable"
       ? ` Key Polymarket reference: "${p.hiveRelevantMarkets[0]}."`
       : "";
 
-  const directionVerb = p.direction === "bullish" ? "advance" : p.direction === "bearish" ? "decline" : "consolidate";
-  const strengthWord = p.hivemindScore > 70 ? "high-conviction" : p.hivemindScore > 50 ? "moderate" : "low-conviction";
+  const directionVerb =
+    p.direction === "bullish" ? "advance" : p.direction === "bearish" ? "decline" : "consolidate";
+  const strengthWord =
+    p.hivemindScore > 70 ? "high-conviction" : p.hivemindScore > 50 ? "moderate" : "low-conviction";
 
   const version = p.beliefDynamics ? "v3" : "v2";
 
@@ -174,11 +183,19 @@ function buildNarrative(p: NarrativeParams): string {
     lines.push(``);
     lines.push(`Belief Delta (HPL-HPA v3 — Session ${d.sessionCount}):`);
     if (firstRun) {
-      lines.push(`This is the first v3 run for ${p.symbol}. Belief state seeded. Future runs will show delta dynamics.`);
+      lines.push(
+        `This is the first v3 run for ${p.symbol}. Belief state seeded. Future runs will show delta dynamics.`,
+      );
     } else {
-      lines.push(`Δ Probability: ${deltaSign}${(d.delta * 100).toFixed(2)}% vs previous run (was ${d.previousDirection?.toUpperCase() ?? "unknown"}).`);
-      lines.push(`Momentum: ${momSign}${(d.momentum * 100).toFixed(2)}% rolling avg — ${shiftDesc[d.convictionShift]}.`);
-      lines.push(`Acceleration: ${accSign}${(d.acceleration * 100).toFixed(2)}% (Δ momentum). Stability score: ${(d.stability * 100).toFixed(0)}/100.`);
+      lines.push(
+        `Δ Probability: ${deltaSign}${(d.delta * 100).toFixed(2)}% vs previous run (was ${d.previousDirection?.toUpperCase() ?? "unknown"}).`,
+      );
+      lines.push(
+        `Momentum: ${momSign}${(d.momentum * 100).toFixed(2)}% rolling avg — ${shiftDesc[d.convictionShift]}.`,
+      );
+      lines.push(
+        `Acceleration: ${accSign}${(d.acceleration * 100).toFixed(2)}% (Δ momentum). Stability score: ${(d.stability * 100).toFixed(0)}/100.`,
+      );
     }
   }
 

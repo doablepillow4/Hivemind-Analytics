@@ -48,7 +48,7 @@ export const beliefHistoryTable = pgTable(
     previousRunId: text("previous_run_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("belief_history_symbol_idx").on(table.symbol)]
+  (table) => [index("belief_history_symbol_idx").on(table.symbol)],
 );
 
 export const beliefStatesTable = pgTable("belief_states", {

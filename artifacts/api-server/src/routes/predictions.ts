@@ -7,7 +7,11 @@ import {
   CreatePredictionBody,
   GetPredictionsSummaryResponse,
 } from "@workspace/api-zod";
-import { generatePrediction, getPredictionsSummary, resolveExpiredPredictions } from "../lib/predictions-engine";
+import {
+  generatePrediction,
+  getPredictionsSummary,
+  resolveExpiredPredictions,
+} from "../lib/predictions-engine";
 import { fetchStockPrice, fetchCryptoPrices, CRYPTO_ID_MAP } from "../lib/market-data";
 
 const router: IRouter = Router();

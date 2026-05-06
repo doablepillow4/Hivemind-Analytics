@@ -25,20 +25,19 @@ export interface SynthesisOutput {
 export function synthesize(
   hypothesisTokens: BeliefToken[],
   critiqueTokens: BeliefToken[],
-  agentReputations: Map<string, number>
+  agentReputations: Map<string, number>,
 ): SynthesisOutput {
   const allInputTokens = [...hypothesisTokens, ...critiqueTokens];
   const parentIds = allInputTokens.map((t) => t.id);
 
-  const getReputation = (agentType: string) =>
-    agentReputations.get(agentType) ?? 1.0;
+  const getReputation = (agentType: string) => agentReputations.get(agentType) ?? 1.0;
 
   let weightedProbSum = 0;
   let weightSum = 0;
   let shapHiveSum = 0;
   let shapAiSum = 0;
   let shapGeoSum = 0;
-  let weightedShapTotal = 0;
+  let _weightedShapTotal = 0;
 
   for (const token of allInputTokens) {
     const reputation = getReputation(token.agentType);
@@ -49,7 +48,7 @@ export function synthesize(
     shapHiveSum += token.shapHive * w;
     shapAiSum += token.shapAi * w;
     shapGeoSum += token.shapGeo * w;
-    weightedShapTotal += w;
+    _weightedShapTotal += w;
   }
 
   const rawProb = weightSum > 0 ? weightedProbSum / weightSum : 0.5;
@@ -101,7 +100,8 @@ export function synthesize(
     shapHive: parseFloat(shapHive.toFixed(4)),
     shapAi: parseFloat(shapAi.toFixed(4)),
     shapGeo: parseFloat(shapGeo.toFixed(4)),
-    liquidityScore: hypothesisTokens.find((t) => t.agentType === "hypothesis_hive")?.liquidityScore ?? 0,
+    liquidityScore:
+      hypothesisTokens.find((t) => t.agentType === "hypothesis_hive")?.liquidityScore ?? 0,
     parentIds,
   };
 

@@ -2,32 +2,34 @@ import { logger } from "./logger";
 
 const STOCK_SYMBOLS = ["NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "SPY"];
 const CRYPTO_IDS: Record<string, { id: string; symbol: string; name: string }> = {
-  BTC:  { id: "bitcoin",       symbol: "BTC",  name: "Bitcoin"   },
-  ETH:  { id: "ethereum",      symbol: "ETH",  name: "Ethereum"  },
-  SOL:  { id: "solana",        symbol: "SOL",  name: "Solana"    },
-  BNB:  { id: "binancecoin",   symbol: "BNB",  name: "BNB"       },
-  ADA:  { id: "cardano",       symbol: "ADA",  name: "Cardano"   },
-  XRP:  { id: "ripple",        symbol: "XRP",  name: "XRP"       },
-  DOGE: { id: "dogecoin",      symbol: "DOGE", name: "Dogecoin"  },
-  AVAX: { id: "avalanche-2",   symbol: "AVAX", name: "Avalanche" },
-  DOT:  { id: "polkadot",      symbol: "DOT",  name: "Polkadot"  },
-  LINK: { id: "chainlink",     symbol: "LINK", name: "Chainlink" },
-  MATIC:{ id: "polygon-ecosystem-token", symbol: "MATIC",name: "Polygon"   },
-  LTC:  { id: "litecoin",      symbol: "LTC",  name: "Litecoin"  },
+  BTC: { id: "bitcoin", symbol: "BTC", name: "Bitcoin" },
+  ETH: { id: "ethereum", symbol: "ETH", name: "Ethereum" },
+  SOL: { id: "solana", symbol: "SOL", name: "Solana" },
+  BNB: { id: "binancecoin", symbol: "BNB", name: "BNB" },
+  ADA: { id: "cardano", symbol: "ADA", name: "Cardano" },
+  XRP: { id: "ripple", symbol: "XRP", name: "XRP" },
+  DOGE: { id: "dogecoin", symbol: "DOGE", name: "Dogecoin" },
+  AVAX: { id: "avalanche-2", symbol: "AVAX", name: "Avalanche" },
+  DOT: { id: "polkadot", symbol: "DOT", name: "Polkadot" },
+  LINK: { id: "chainlink", symbol: "LINK", name: "Chainlink" },
+  MATIC: { id: "polygon-ecosystem-token", symbol: "MATIC", name: "Polygon" },
+  LTC: { id: "litecoin", symbol: "LTC", name: "Litecoin" },
 };
 
-function safeNum(value: unknown, fallback = 0): number {
+export function safeNum(value: unknown, fallback = 0): number {
   const n = typeof value === "string" ? parseFloat(value) : Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
-function sanitizeSparkline(values: (number | null | undefined)[]): number[] {
+export function sanitizeSparkline(values: (number | null | undefined)[]): number[] {
   const clean = values.map((v) => (Number.isFinite(v as number) ? (v as number) : null));
   const filled: number[] = [];
   let last = 0;
   for (const v of clean) {
-    if (v !== null) { last = v; filled.push(v); }
-    else filled.push(last);
+    if (v !== null) {
+      last = v;
+      filled.push(v);
+    } else filled.push(last);
   }
   return filled;
 }
@@ -64,7 +66,9 @@ export async function fetchStockPrice(symbol: string) {
 
     const meta = result.meta;
     const closes = result.indicators?.quote?.[0]?.close ?? [];
-    const validCloses = closes.filter((c): c is number => typeof c === "number" && Number.isFinite(c));
+    const validCloses = closes.filter(
+      (c): c is number => typeof c === "number" && Number.isFinite(c),
+    );
     const sparkline = sanitizeSparkline(validCloses.slice(-15));
 
     const price = safeNum(meta.regularMarketPrice);
@@ -77,7 +81,7 @@ export async function fetchStockPrice(symbol: string) {
 
     return {
       symbol,
-      name: (meta.longName && meta.longName.trim()) ? meta.longName : symbol,
+      name: meta.longName && meta.longName.trim() ? meta.longName : symbol,
       price,
       change: safeNum(rawChange),
       changePercent: safeNum(rawChangePercent),
@@ -121,7 +125,10 @@ export async function fetchCryptoPrices() {
 
       const price = safeNum(d.usd);
       if (price <= 0) {
-        logger.warn({ sym, id: info.id }, "CoinGecko returned invalid price, skipping to fallback entry");
+        logger.warn(
+          { sym, id: info.id },
+          "CoinGecko returned invalid price, skipping to fallback entry",
+        );
         results.push(generateFallbackCryptoEntry(sym));
         continue;
       }
@@ -189,7 +196,7 @@ export async function fetchStockHistory(symbol: string, days = 30) {
         close: quote.close?.[i] ?? null,
         volume: quote.volume?.[i] ?? null,
       }))
-      .filter((p) => p.close != null && Number.isFinite(p.close));
+      .filter((p) => p.close !== null && Number.isFinite(p.close));
   } catch (err) {
     logger.warn({ symbol, err }, "Failed to fetch stock history");
     return generateFallbackHistory(symbol, days);
@@ -214,7 +221,7 @@ export async function fetchCryptoHistory(coinId: string, days = 30) {
         low: null,
         volume: null,
       }))
-      .filter((p) => p.close != null);
+      .filter((p) => p.close !== null);
   } catch (err) {
     logger.warn({ coinId, err }, "Failed to fetch crypto history");
     return generateFallbackHistory(coinId, days);
@@ -225,8 +232,16 @@ export const STOCK_SYMBOL_LIST = STOCK_SYMBOLS;
 export const CRYPTO_ID_MAP = CRYPTO_IDS;
 
 export async function fetchAnyTicker(symbol: string): Promise<{
-  symbol: string; name: string; price: number; change: number; changePercent: number;
-  volume: number; marketCap: number; type: "stock" | "crypto"; sparkline: number[]; updatedAt: string;
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  marketCap: number;
+  type: "stock" | "crypto";
+  sparkline: number[];
+  updatedAt: string;
 } | null> {
   const upper = symbol.toUpperCase();
 
@@ -264,8 +279,14 @@ function generateFallbackCryptoEntry(sym: string) {
 
 function generateFallbackStockPrice(symbol: string) {
   const prices: Record<string, number> = {
-    NVDA: 875.4, TSLA: 175.2, AAPL: 189.5, MSFT: 412.3,
-    AMZN: 185.7, META: 502.1, GOOGL: 175.8, SPY: 521.3,
+    NVDA: 875.4,
+    TSLA: 175.2,
+    AAPL: 189.5,
+    MSFT: 412.3,
+    AMZN: 185.7,
+    META: 502.1,
+    GOOGL: 175.8,
+    SPY: 521.3,
   };
   const price = prices[symbol] ?? 100;
   const changePercent = (Math.random() - 0.5) * 4;
@@ -286,18 +307,150 @@ function generateFallbackStockPrice(symbol: string) {
 
 function generateFallbackCryptoPrices() {
   return [
-    { symbol: "BTC",   name: "Bitcoin",   price: 97500,  change: 1200,   changePercent:  1.24,  volume: 28e9,  marketCap: 1.92e12, type: "crypto" as const, sparkline: generateSparkline(97500,   1.24),  updatedAt: new Date().toISOString() },
-    { symbol: "ETH",   name: "Ethereum",  price: 1870,   change: -22,    changePercent: -1.16,  volume: 14e9,  marketCap: 226e9,   type: "crypto" as const, sparkline: generateSparkline(1870,   -1.16),  updatedAt: new Date().toISOString() },
-    { symbol: "SOL",   name: "Solana",    price: 148,    change: 2.8,    changePercent:  1.91,  volume: 3.5e9, marketCap: 78e9,    type: "crypto" as const, sparkline: generateSparkline(148,     1.91),  updatedAt: new Date().toISOString() },
-    { symbol: "BNB",   name: "BNB",       price: 592,    change: -8,     changePercent: -1.33,  volume: 1.8e9, marketCap: 88e9,    type: "crypto" as const, sparkline: generateSparkline(592,    -1.33),  updatedAt: new Date().toISOString() },
-    { symbol: "ADA",   name: "Cardano",   price: 0.72,   change: 0.015,  changePercent:  2.13,  volume: 0.4e9, marketCap: 26e9,    type: "crypto" as const, sparkline: generateSparkline(0.72,    2.13),  updatedAt: new Date().toISOString() },
-    { symbol: "XRP",   name: "XRP",       price: 2.18,   change: -0.05,  changePercent: -2.24,  volume: 2.1e9, marketCap: 124e9,   type: "crypto" as const, sparkline: generateSparkline(2.18,   -2.24),  updatedAt: new Date().toISOString() },
-    { symbol: "DOGE",  name: "Dogecoin",  price: 0.178,  change: 0.003,  changePercent:  1.71,  volume: 0.9e9, marketCap: 26e9,    type: "crypto" as const, sparkline: generateSparkline(0.178,   1.71),  updatedAt: new Date().toISOString() },
-    { symbol: "AVAX",  name: "Avalanche", price: 19.5,   change: -0.45,  changePercent: -2.25,  volume: 0.5e9, marketCap: 8e9,     type: "crypto" as const, sparkline: generateSparkline(19.5,   -2.25),  updatedAt: new Date().toISOString() },
-    { symbol: "DOT",   name: "Polkadot",  price: 3.9,    change: 0.08,   changePercent:  2.10,  volume: 0.3e9, marketCap: 6e9,     type: "crypto" as const, sparkline: generateSparkline(3.9,     2.10),  updatedAt: new Date().toISOString() },
-    { symbol: "LINK",  name: "Chainlink", price: 12.4,   change: 0.30,   changePercent:  2.48,  volume: 0.4e9, marketCap: 8e9,     type: "crypto" as const, sparkline: generateSparkline(12.4,    2.48),  updatedAt: new Date().toISOString() },
-    { symbol: "MATIC", name: "Polygon",   price: 0.098,  change: -0.002, changePercent: -1.79,  volume: 0.3e9, marketCap: 1e9,     type: "crypto" as const, sparkline: generateSparkline(0.098,  -1.79),  updatedAt: new Date().toISOString() },
-    { symbol: "LTC",   name: "Litecoin",  price: 85,     change: 1.4,    changePercent:  1.68,  volume: 0.4e9, marketCap: 6e9,     type: "crypto" as const, sparkline: generateSparkline(85,      1.68),  updatedAt: new Date().toISOString() },
+    {
+      symbol: "BTC",
+      name: "Bitcoin",
+      price: 97500,
+      change: 1200,
+      changePercent: 1.24,
+      volume: 28e9,
+      marketCap: 1.92e12,
+      type: "crypto" as const,
+      sparkline: generateSparkline(97500, 1.24),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "ETH",
+      name: "Ethereum",
+      price: 1870,
+      change: -22,
+      changePercent: -1.16,
+      volume: 14e9,
+      marketCap: 226e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(1870, -1.16),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "SOL",
+      name: "Solana",
+      price: 148,
+      change: 2.8,
+      changePercent: 1.91,
+      volume: 3.5e9,
+      marketCap: 78e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(148, 1.91),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "BNB",
+      name: "BNB",
+      price: 592,
+      change: -8,
+      changePercent: -1.33,
+      volume: 1.8e9,
+      marketCap: 88e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(592, -1.33),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "ADA",
+      name: "Cardano",
+      price: 0.72,
+      change: 0.015,
+      changePercent: 2.13,
+      volume: 0.4e9,
+      marketCap: 26e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(0.72, 2.13),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "XRP",
+      name: "XRP",
+      price: 2.18,
+      change: -0.05,
+      changePercent: -2.24,
+      volume: 2.1e9,
+      marketCap: 124e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(2.18, -2.24),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "DOGE",
+      name: "Dogecoin",
+      price: 0.178,
+      change: 0.003,
+      changePercent: 1.71,
+      volume: 0.9e9,
+      marketCap: 26e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(0.178, 1.71),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "AVAX",
+      name: "Avalanche",
+      price: 19.5,
+      change: -0.45,
+      changePercent: -2.25,
+      volume: 0.5e9,
+      marketCap: 8e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(19.5, -2.25),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "DOT",
+      name: "Polkadot",
+      price: 3.9,
+      change: 0.08,
+      changePercent: 2.1,
+      volume: 0.3e9,
+      marketCap: 6e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(3.9, 2.1),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "LINK",
+      name: "Chainlink",
+      price: 12.4,
+      change: 0.3,
+      changePercent: 2.48,
+      volume: 0.4e9,
+      marketCap: 8e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(12.4, 2.48),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "MATIC",
+      name: "Polygon",
+      price: 0.098,
+      change: -0.002,
+      changePercent: -1.79,
+      volume: 0.3e9,
+      marketCap: 1e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(0.098, -1.79),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      symbol: "LTC",
+      name: "Litecoin",
+      price: 85,
+      change: 1.4,
+      changePercent: 1.68,
+      volume: 0.4e9,
+      marketCap: 6e9,
+      type: "crypto" as const,
+      sparkline: generateSparkline(85, 1.68),
+      updatedAt: new Date().toISOString(),
+    },
   ];
 }
 

@@ -29,13 +29,15 @@ export function BottomNav() {
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-b-full bg-primary shadow-[0_0_8px_rgba(0,212,255,0.8)]" />
               )}
-              <div className={`relative p-1.5 rounded-lg transition-all duration-200 ${isActive ? "bg-primary/10" : ""}`}>
-                {isActive && (
-                  <span className="absolute inset-0 rounded-lg bg-primary/10 blur-sm" />
-                )}
+              <div
+                className={`relative p-1.5 rounded-lg transition-all duration-200 ${isActive ? "bg-primary/10" : ""}`}
+              >
+                {isActive && <span className="absolute inset-0 rounded-lg bg-primary/10 blur-sm" />}
                 <Icon className="relative w-[18px] h-[18px]" />
               </div>
-              <span className={`text-[9px] font-semibold tracking-widest uppercase transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+              <span
+                className={`text-[9px] font-semibold tracking-widest uppercase transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+              >
                 {item.label}
               </span>
             </Link>

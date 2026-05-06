@@ -13,7 +13,8 @@ interface Signal {
 
 function computeRSI(closes: number[], period = 14): number {
   if (closes.length < period + 1) return 50;
-  let gains = 0, losses = 0;
+  let gains = 0,
+    losses = 0;
   for (let i = closes.length - period; i < closes.length; i++) {
     const delta = closes[i] - closes[i - 1];
     if (delta > 0) gains += delta;
@@ -75,9 +76,11 @@ export async function generatePrediction(symbol: string, timeframe = "7d", curre
     logger.warn({ symbol, err }, "Could not fetch history for prediction");
   }
 
-  const closes = history.filter((h): h is { close: number } => h.close != null && typeof h.close === "number").map((h) => h.close);
+  const closes = history
+    .filter((h): h is { close: number } => h.close !== null && typeof h.close === "number")
+    .map((h) => h.close);
   if (closes.length < 10) {
-    closes.push(...Array.from({ length: 20 }, (_, i) => currentPrice * (1 + (Math.sin(i) * 0.03))));
+    closes.push(...Array.from({ length: 20 }, (_, i) => currentPrice * (1 + Math.sin(i) * 0.03)));
   }
 
   const rsi = computeRSI(closes);
@@ -112,7 +115,9 @@ export async function generatePrediction(symbol: string, timeframe = "7d", curre
     },
     {
       name: "Momentum",
-      value: parseFloat(((closes[closes.length - 1] / closes[Math.max(0, closes.length - 5)] - 1) * 100).toFixed(2)),
+      value: parseFloat(
+        ((closes[closes.length - 1] / closes[Math.max(0, closes.length - 5)] - 1) * 100).toFixed(2),
+      ),
       weight: 0.15,
       bullish: closes[closes.length - 1] > closes[Math.max(0, closes.length - 5)],
     },
@@ -159,10 +164,7 @@ async function getHistoricalAccuracyBoost(symbol: string): Promise<number> {
       .select()
       .from(predictionsTable)
       .where(
-        and(
-          eq(predictionsTable.symbol, symbol),
-          gte(predictionsTable.createdAt, thirtyDaysAgo),
-        ),
+        and(eq(predictionsTable.symbol, symbol), gte(predictionsTable.createdAt, thirtyDaysAgo)),
       )
       .limit(20);
     if (resolved.length === 0) return 0;
@@ -235,7 +237,8 @@ export async function getPredictionsSummary() {
 
   const older = resolved.slice(10);
   const olderCorrect = older.filter((p) => p.outcome === "correct");
-  const recentAccuracy = recentResolved.length > 0 ? recentCorrect.length / recentResolved.length : 0;
+  const recentAccuracy =
+    recentResolved.length > 0 ? recentCorrect.length / recentResolved.length : 0;
   const olderAccuracy = older.length > 0 ? olderCorrect.length / older.length : 0;
 
   return {

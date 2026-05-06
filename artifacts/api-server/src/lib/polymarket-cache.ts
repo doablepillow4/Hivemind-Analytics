@@ -21,8 +21,24 @@ export function getOddsShift(marketId: string, currentYesPrice: number): number 
 
 export function getGeoMarketsForAsset(
   symbol: string,
-  markets: Array<{ id: string; question: string; yesPrice: number; noPrice: number; volume: number; category: string; oddsShift?: number | null }>
-): Array<{ question: string; yesPrice: number; noPrice: number; volume: number; category: string; marketImpact: string; oddsShift: number | null }> {
+  markets: Array<{
+    id: string;
+    question: string;
+    yesPrice: number;
+    noPrice: number;
+    volume: number;
+    category: string;
+    oddsShift?: number | null;
+  }>,
+): Array<{
+  question: string;
+  yesPrice: number;
+  noPrice: number;
+  volume: number;
+  category: string;
+  marketImpact: string;
+  oddsShift: number | null;
+}> {
   const s = symbol.toLowerCase();
   const isCrypto = /^(btc|eth|sol|bnb|ada|xrp|doge|avax|dot|link|matic|ltc)$/.test(s);
   const isEnergy = /^(xom|cvx|uso|oil|cop|bp)$/.test(s);
@@ -30,11 +46,44 @@ export function getGeoMarketsForAsset(
   const isMacro = /^(spy|qqq|tlt|gld|vix)$/.test(s);
 
   const keywords: string[] = [];
-  if (isCrypto) keywords.push("bitcoin", "crypto", "btc", "ethereum", "regulation", "sec", "cbdc", "stablecoin", "digital asset");
-  if (isEnergy) keywords.push("oil", "opec", "iran", "saudi", "energy", "petroleum", "gas", "barrel");
-  if (isTech) keywords.push("ai", "semiconductor", "chip", "nvidia", "taiwan", "china", "tech", "artificial intelligence");
+  if (isCrypto)
+    keywords.push(
+      "bitcoin",
+      "crypto",
+      "btc",
+      "ethereum",
+      "regulation",
+      "sec",
+      "cbdc",
+      "stablecoin",
+      "digital asset",
+    );
+  if (isEnergy)
+    keywords.push("oil", "opec", "iran", "saudi", "energy", "petroleum", "gas", "barrel");
+  if (isTech)
+    keywords.push(
+      "ai",
+      "semiconductor",
+      "chip",
+      "nvidia",
+      "taiwan",
+      "china",
+      "tech",
+      "artificial intelligence",
+    );
   if (isMacro || (!isCrypto && !isEnergy && !isTech)) {
-    keywords.push("fed", "rate", "inflation", "recession", "interest", "gdp", "dollar", "trump", "election", "debt");
+    keywords.push(
+      "fed",
+      "rate",
+      "inflation",
+      "recession",
+      "interest",
+      "gdp",
+      "dollar",
+      "trump",
+      "election",
+      "debt",
+    );
   }
   keywords.push("war", "conflict", "sanction", "nuclear", "ceasefire", "ukraine", "russia");
 
@@ -88,13 +137,15 @@ export function buildPolymarketHeadline(market: {
   const q = market.question;
   const pct = (market.yesPrice * 100).toFixed(0);
   const shift = market.oddsShift;
-  const shiftStr = shift != null && Math.abs(shift) > 0.005
-    ? `, ${shift > 0 ? "↑" : "↓"} from ${((market.yesPrice - shift) * 100).toFixed(0)}% since news broke`
-    : "";
+  const shiftStr =
+    shift !== null && Math.abs(shift) > 0.005
+      ? `, ${shift > 0 ? "↑" : "↓"} from ${((market.yesPrice - shift) * 100).toFixed(0)}% since news broke`
+      : "";
 
   const q_lower = q.toLowerCase();
   let prefix = "Markets watching";
-  if (/russia|ukraine|ceasefire|war|conflict/.test(q_lower)) prefix = "BREAKING: Geopolitical risk elevated";
+  if (/russia|ukraine|ceasefire|war|conflict/.test(q_lower))
+    prefix = "BREAKING: Geopolitical risk elevated";
   else if (/bitcoin|btc|crypto|ethereum/.test(q_lower)) prefix = "BREAKING: Crypto market signal";
   else if (/fed|rate|inflation|recession/.test(q_lower)) prefix = "BREAKING: Macro risk repricing";
   else if (/iran|oil|opec|energy/.test(q_lower)) prefix = "BREAKING: Energy supply shock risk";

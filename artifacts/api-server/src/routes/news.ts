@@ -6,7 +6,8 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 
 router.get("/news", async (req, res): Promise<void> => {
-  const symbol = typeof req.query["symbol"] === "string" ? req.query["symbol"].toUpperCase() : undefined;
+  const symbol =
+    typeof req.query["symbol"] === "string" ? req.query["symbol"].toUpperCase() : undefined;
 
   try {
     const all = await fetchGeopoliticsNews();
@@ -19,7 +20,9 @@ router.get("/news", async (req, res): Promise<void> => {
         return text.includes(sym);
       });
       if (filtered.length === 0) {
-        filtered = all.filter((n) => n.category === "macro" || n.category === "geopolitics").slice(0, 10);
+        filtered = all
+          .filter((n) => n.category === "macro" || n.category === "geopolitics")
+          .slice(0, 10);
       }
     }
 

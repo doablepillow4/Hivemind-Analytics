@@ -15,12 +15,21 @@ import {
 import { runLattice, getAllAgentStates, getStaticAgentStates } from "../lib/lattice/lattice-engine";
 import { queryBeliefHistory } from "../lib/lattice/belief-state";
 import { detectRegime, describeRegime } from "../lib/lattice/regime-detector";
-import { fetchStockHistory, fetchCryptoHistory, fetchStockPrice, fetchCryptoPrices, CRYPTO_ID_MAP } from "../lib/market-data";
+import {
+  fetchStockHistory,
+  fetchCryptoHistory,
+  fetchStockPrice,
+  fetchCryptoPrices,
+  CRYPTO_ID_MAP,
+} from "../lib/market-data";
 import { resolveExpiredPredictions } from "../lib/predictions-engine";
 import { db } from "@workspace/db";
 import { predictionsTable, agentStatesTable } from "@workspace/db";
 import { isNull, eq } from "drizzle-orm";
-import { getOddsShift, getGeoMarketsForAsset, buildPolymarketHeadline } from "../lib/polymarket-cache";
+import {
+  getGeoMarketsForAsset,
+  buildPolymarketHeadline,
+} from "../lib/polymarket-cache";
 import { fetchPolymarketData, getFallbackMarkets } from "./polymarket";
 import { logger } from "../lib/logger";
 
@@ -133,7 +142,7 @@ router.post("/lattice/challenge", async (req, res): Promise<void> => {
     adjustment = +0.04;
     response = `A ceasefire or peace agreement reduces geopolitical tail risk premium that markets have been pricing. For ${symbol}, reduced conflict risk means commodity supply chains normalize and risk-off positioning reverses — a net positive catalyst. Revising probability slightly higher.`;
   } else if (/nuclear|nuke|warhead|escalat/.test(lower)) {
-    adjustment = -0.10;
+    adjustment = -0.1;
     response = `Nuclear escalation risk is the most extreme tail event in modern geopolitics. The market impact would be severe, non-linear, and largely unpriceable — which is exactly why tail-risk models demand the largest probability discounts. For ${symbol}, this is a significant bearish adjustment.`;
   } else if (/ukraine|russia|zelensky|putin/.test(lower)) {
     adjustment = -0.05;
@@ -144,12 +153,14 @@ router.post("/lattice/challenge", async (req, res): Promise<void> => {
   }
 
   const newProbability = Math.max(0.05, Math.min(0.95, currentProbability + adjustment));
-  res.json(LatticeChallengeResponse.parse({
-    agentType,
-    response,
-    adjustment: parseFloat(adjustment.toFixed(4)),
-    newProbability: parseFloat(newProbability.toFixed(4)),
-  }));
+  res.json(
+    LatticeChallengeResponse.parse({
+      agentType,
+      response,
+      adjustment: parseFloat(adjustment.toFixed(4)),
+      newProbability: parseFloat(newProbability.toFixed(4)),
+    }),
+  );
 });
 
 router.get("/lattice/agents", async (_req, res): Promise<void> => {
@@ -178,35 +189,43 @@ router.get("/lattice/regime", async (req, res): Promise<void> => {
     if (isCrypto) {
       const coinId = CRYPTO_ID_MAP[symbol.toUpperCase()]?.id ?? symbol.toLowerCase();
       const history = await fetchCryptoHistory(coinId, 30);
-      closes = history.filter((h) => h.close != null).map((h) => h.close!);
+      closes = history.filter((h) => h.close !== null).map((h) => h.close!);
     } else {
       const history = await fetchStockHistory(symbol.toUpperCase(), 30);
-      closes = history.filter((h) => h.close != null).map((h) => h.close!);
+      closes = history.filter((h) => h.close !== null).map((h) => h.close!);
     }
 
     const ctx = detectRegime(closes);
-    res.json(GetMarketRegimeResponse.parse({
-      symbol: symbol.toUpperCase(),
-      regime: ctx.regime,
-      regimeScore: ctx.regimeScore,
-      volatility: ctx.volatility,
-      description: describeRegime(ctx.regime, ctx.volatility),
-    }));
+    res.json(
+      GetMarketRegimeResponse.parse({
+        symbol: symbol.toUpperCase(),
+        regime: ctx.regime,
+        regimeScore: ctx.regimeScore,
+        volatility: ctx.volatility,
+        description: describeRegime(ctx.regime, ctx.volatility),
+      }),
+    );
   } catch (err) {
     logger.warn({ err, symbol }, "Regime detection failed");
-    res.json(GetMarketRegimeResponse.parse({
-      symbol: symbol.toUpperCase(),
-      regime: "calm",
-      regimeScore: 0.1,
-      volatility: 0.14,
-      description: "Low-volatility environment (14.0% annualized).",
-    }));
+    res.json(
+      GetMarketRegimeResponse.parse({
+        symbol: symbol.toUpperCase(),
+        regime: "calm",
+        regimeScore: 0.1,
+        volatility: 0.14,
+        description: "Low-volatility environment (14.0% annualized).",
+      }),
+    );
   }
 });
 
 router.post("/lattice/train", async (_req, res): Promise<void> => {
   try {
-    const pending = await db.select().from(predictionsTable).where(isNull(predictionsTable.outcome)).limit(100);
+    const pending = await db
+      .select()
+      .from(predictionsTable)
+      .where(isNull(predictionsTable.outcome))
+      .limit(100);
     const priceMap = new Map<string, number>();
 
     const symbols = [...new Set(pending.map((p) => p.symbol))];
@@ -218,7 +237,7 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
       stockSymbols.map(async (sym) => {
         const q = await fetchStockPrice(sym).catch(() => null);
         if (q) priceMap.set(sym, q.price);
-      })
+      }),
     );
 
     await resolveExpiredPredictions(priceMap);
@@ -235,18 +254,21 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
       .limit(200);
 
     const agentTypeAccuracy: Record<string, { correct: number; total: number }> = {
-      hypothesis_momentum:  { correct: 0, total: 0 },
-      hypothesis_meanrevert:{ correct: 0, total: 0 },
+      hypothesis_momentum: { correct: 0, total: 0 },
+      hypothesis_meanrevert: { correct: 0, total: 0 },
       hypothesis_volregime: { correct: 0, total: 0 },
-      hypothesis_hive:      { correct: 0, total: 0 },
-      critique_devil:       { correct: 0, total: 0 },
-      critique_tailrisk:    { correct: 0, total: 0 },
+      hypothesis_hive: { correct: 0, total: 0 },
+      critique_devil: { correct: 0, total: 0 },
+      critique_tailrisk: { correct: 0, total: 0 },
     };
 
     const resolvedCount = resolved.length + incorrect.length;
 
     for (const pred of resolved) {
-      const rsi = parseFloat(JSON.parse(pred.signals ?? "[]").find((s: { name: string }) => s.name === "RSI")?.value ?? "50");
+      const rsi = parseFloat(
+        JSON.parse(pred.signals ?? "[]").find((s: { name: string }) => s.name === "RSI")?.value ??
+          "50",
+      );
       if (rsi < 40) agentTypeAccuracy.hypothesis_meanrevert.correct++;
       if (rsi > 60) agentTypeAccuracy.hypothesis_momentum.correct++;
       agentTypeAccuracy.hypothesis_volregime.correct++;
@@ -254,14 +276,20 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
       agentTypeAccuracy.hypothesis_meanrevert.total++;
       agentTypeAccuracy.hypothesis_volregime.total++;
     }
-    for (const pred of incorrect) {
+    for (const _pred of incorrect) {
       agentTypeAccuracy.hypothesis_momentum.total++;
       agentTypeAccuracy.hypothesis_meanrevert.total++;
       agentTypeAccuracy.hypothesis_volregime.total++;
     }
 
     const existingStates = await getAllAgentStates().catch(() => getStaticAgentStates());
-    const agentUpdates: Array<{ agentType: string; oldReputation: number; newReputation: number; delta: number; reason: string }> = [];
+    const agentUpdates: Array<{
+      agentType: string;
+      oldReputation: number;
+      newReputation: number;
+      delta: number;
+      reason: string;
+    }> = [];
     let improved = 0;
 
     for (const [agentType, acc] of Object.entries(agentTypeAccuracy)) {
@@ -276,9 +304,13 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
 
       if (Math.abs(delta) > 0.001) {
         try {
-          const existingRow = await db.select().from(agentStatesTable).where(eq(agentStatesTable.agentType, agentType));
+          const existingRow = await db
+            .select()
+            .from(agentStatesTable)
+            .where(eq(agentStatesTable.agentType, agentType));
           if (existingRow.length > 0) {
-            await db.update(agentStatesTable)
+            await db
+              .update(agentStatesTable)
               .set({
                 reputation: parseFloat(newRep.toFixed(4)),
                 brierScore: parseFloat((1 - accuracy).toFixed(4)),
@@ -297,28 +329,33 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
           oldReputation: parseFloat(oldRep.toFixed(4)),
           newReputation: parseFloat(newRep.toFixed(4)),
           delta,
-          reason: acc.total > 0
-            ? `${acc.correct}/${acc.total} correct (${(accuracy * 100).toFixed(0)}% accuracy) → ${delta > 0 ? "reputation boost" : "reputation penalty"}`
-            : "Insufficient data for update",
+          reason:
+            acc.total > 0
+              ? `${acc.correct}/${acc.total} correct (${(accuracy * 100).toFixed(0)}% accuracy) → ${delta > 0 ? "reputation boost" : "reputation penalty"}`
+              : "Insufficient data for update",
         });
         if (delta > 0) improved++;
       }
     }
 
     const totalResolved = resolvedCount;
-    const accuracyGain = agentUpdates.length > 0
-      ? agentUpdates.reduce((sum, u) => sum + u.delta, 0) / agentUpdates.length
-      : 0;
+    const accuracyGain =
+      agentUpdates.length > 0
+        ? agentUpdates.reduce((sum, u) => sum + u.delta, 0) / agentUpdates.length
+        : 0;
 
-    res.json(RunLatticeTrainingResponse.parse({
-      resolved: totalResolved,
-      improved,
-      agentUpdates,
-      accuracyGain: parseFloat(accuracyGain.toFixed(4)),
-      message: totalResolved === 0
-        ? "No expired predictions to resolve yet. Make more predictions and check back after the timeframe expires."
-        : `Resolved ${totalResolved} predictions. Updated ${agentUpdates.length} agent reputations. ${improved} agents improved.`,
-    }));
+    res.json(
+      RunLatticeTrainingResponse.parse({
+        resolved: totalResolved,
+        improved,
+        agentUpdates,
+        accuracyGain: parseFloat(accuracyGain.toFixed(4)),
+        message:
+          totalResolved === 0
+            ? "No expired predictions to resolve yet. Make more predictions and check back after the timeframe expires."
+            : `Resolved ${totalResolved} predictions. Updated ${agentUpdates.length} agent reputations. ${improved} agents improved.`,
+      }),
+    );
   } catch (err) {
     logger.error({ err }, "Lattice training failed");
     res.status(500).json({ error: "Training cycle failed" });

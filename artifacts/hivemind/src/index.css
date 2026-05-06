@@ -68,12 +68,12 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
 
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
   --background: 224 35% 5%;
   --foreground: 210 40% 96%;
@@ -120,11 +120,11 @@
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
-  --app-font-sans: 'DM Sans', sans-serif;
-  --app-font-display: 'Syne', sans-serif;
+  --app-font-sans: "DM Sans", sans-serif;
+  --app-font-display: "Syne", sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', monospace;
-  --radius: .625rem;
+  --app-font-mono: "JetBrains Mono", monospace;
+  --radius: 0.625rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
@@ -147,7 +147,11 @@
       radial-gradient(ellipse at 85% 100%, rgba(100, 50, 220, 0.04) 0%, transparent 50%),
       linear-gradient(rgba(0, 212, 255, 0.018) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 212, 255, 0.018) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+    background-size:
+      100% 100%,
+      100% 100%,
+      44px 44px,
+      44px 44px;
     background-attachment: fixed;
   }
 
@@ -172,8 +176,14 @@
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-up {
@@ -181,19 +191,27 @@
 }
 
 .glow-cyan {
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.15), 0 0 24px rgba(0, 212, 255, 0.08);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.15),
+    0 0 24px rgba(0, 212, 255, 0.08);
 }
 
 .glow-cyan-strong {
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.3), 0 0 32px rgba(0, 212, 255, 0.15);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.3),
+    0 0 32px rgba(0, 212, 255, 0.15);
 }
 
 .card-hover {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .card-hover:hover {
   border-color: rgba(0, 212, 255, 0.25) !important;
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.1), 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .stat-number {

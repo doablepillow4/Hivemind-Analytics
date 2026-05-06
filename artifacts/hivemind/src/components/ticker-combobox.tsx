@@ -17,29 +17,51 @@ interface TickerComboboxProps {
 }
 
 const CRYPTO_ALIASES: Record<string, string> = {
-  BITCOIN: "BTC", BTC: "BTC",
-  ETHEREUM: "ETH", ETHER: "ETH", ETH: "ETH",
-  SOLANA: "SOL", SOL: "SOL",
-  CARDANO: "ADA", ADA: "ADA",
-  RIPPLE: "XRP", XRP: "XRP",
-  DOGECOIN: "DOGE", DOGE: "DOGE",
-  AVALANCHE: "AVAX", AVAX: "AVAX",
-  POLKADOT: "DOT", DOT: "DOT",
-  CHAINLINK: "LINK", LINK: "LINK",
-  POLYGON: "MATIC", MATIC: "MATIC",
-  UNISWAP: "UNI", UNI: "UNI",
-  LITECOIN: "LTC", LTC: "LTC",
-  SHIBA: "SHIB", SHIBAINU: "SHIB", SHIB: "SHIB",
-  BINANCE: "BNB", BNB: "BNB",
+  BITCOIN: "BTC",
+  BTC: "BTC",
+  ETHEREUM: "ETH",
+  ETHER: "ETH",
+  ETH: "ETH",
+  SOLANA: "SOL",
+  SOL: "SOL",
+  CARDANO: "ADA",
+  ADA: "ADA",
+  RIPPLE: "XRP",
+  XRP: "XRP",
+  DOGECOIN: "DOGE",
+  DOGE: "DOGE",
+  AVALANCHE: "AVAX",
+  AVAX: "AVAX",
+  POLKADOT: "DOT",
+  DOT: "DOT",
+  CHAINLINK: "LINK",
+  LINK: "LINK",
+  POLYGON: "MATIC",
+  MATIC: "MATIC",
+  UNISWAP: "UNI",
+  UNI: "UNI",
+  LITECOIN: "LTC",
+  LTC: "LTC",
+  SHIBA: "SHIB",
+  SHIBAINU: "SHIB",
+  SHIB: "SHIB",
+  BINANCE: "BNB",
+  BNB: "BNB",
   NEAR: "NEAR",
-  ATOM: "ATOM", COSMOS: "ATOM",
-  STELLAR: "XLM", XLM: "XLM",
-  APTOS: "APT", APT: "APT",
-  ARBITRUM: "ARB", ARB: "ARB",
-  OPTIMISM: "OP", OP: "OP",
+  ATOM: "ATOM",
+  COSMOS: "ATOM",
+  STELLAR: "XLM",
+  XLM: "XLM",
+  APTOS: "APT",
+  APT: "APT",
+  ARBITRUM: "ARB",
+  ARB: "ARB",
+  OPTIMISM: "OP",
+  OP: "OP",
   TON: "TON",
   PEPE: "PEPE",
-  WORLDCOIN: "WLD", WLD: "WLD",
+  WORLDCOIN: "WLD",
+  WLD: "WLD",
 };
 
 function resolveAlias(query: string): string | null {
@@ -82,11 +104,13 @@ export function TickerCombobox({
         (o) =>
           o.symbol.includes(q) ||
           o.name.toUpperCase().includes(q) ||
-          (aliasResolved && o.symbol === aliasResolved)
+          (aliasResolved && o.symbol === aliasResolved),
       )
     : options;
 
-  const exactMatch = options.find((o) => o.symbol === q || (aliasResolved && o.symbol === aliasResolved));
+  const exactMatch = options.find(
+    (o) => o.symbol === q || (aliasResolved && o.symbol === aliasResolved),
+  );
   const customSymbol = aliasResolved ?? q;
   const isCustom = q.length > 0 && !exactMatch;
 
@@ -111,7 +135,10 @@ export function TickerCombobox({
             ? "border-primary/50 shadow-[0_0_0_1px_rgba(0,212,255,0.15)]"
             : "border-white/10 hover:border-white/20"
         }`}
-        onClick={() => { setOpen(true); inputRef.current?.focus(); }}
+        onClick={() => {
+          setOpen(true);
+          inputRef.current?.focus();
+        }}
       >
         <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         <input
@@ -120,10 +147,15 @@ export function TickerCombobox({
           className="flex-1 bg-transparent outline-none text-sm font-mono text-white placeholder:text-muted-foreground min-w-0"
           placeholder={placeholder}
           value={query}
-          onChange={(e) => { setQuery(e.target.value.toUpperCase()); setOpen(true); }}
+          onChange={(e) => {
+            setQuery(e.target.value.toUpperCase());
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { setOpen(false); }
+            if (e.key === "Escape") {
+              setOpen(false);
+            }
             if (e.key === "Enter") {
               if (aliasResolved) {
                 const match = options.find((o) => o.symbol === aliasResolved);
@@ -137,7 +169,10 @@ export function TickerCombobox({
           }}
         />
         {query ? (
-          <button onClick={clear} className="text-muted-foreground hover:text-white transition-colors">
+          <button
+            onClick={clear}
+            className="text-muted-foreground hover:text-white transition-colors"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         ) : (
@@ -175,7 +210,10 @@ export function TickerCombobox({
               <button
                 key={opt.symbol}
                 className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/[0.05] transition-colors text-left"
-                onMouseDown={(e) => { e.preventDefault(); select(opt.symbol, opt.price); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  select(opt.symbol, opt.price);
+                }}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-white/10 text-muted-foreground bg-white/[0.03]">
@@ -187,14 +225,22 @@ export function TickerCombobox({
                   </div>
                 </div>
                 <div className="text-[11px] font-mono text-primary">
-                  ${opt.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  $
+                  {opt.price.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </div>
               </button>
             ))
           ) : q.length === 0 ? (
-            <div className="px-3 py-3 text-center text-[11px] text-muted-foreground">Start typing to search</div>
+            <div className="px-3 py-3 text-center text-[11px] text-muted-foreground">
+              Start typing to search
+            </div>
           ) : !isCustom ? (
-            <div className="px-3 py-3 text-center text-[11px] text-muted-foreground">No matches found</div>
+            <div className="px-3 py-3 text-center text-[11px] text-muted-foreground">
+              No matches found
+            </div>
           ) : null}
         </div>
       )}

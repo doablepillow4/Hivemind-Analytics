@@ -1,45 +1,151 @@
 import React, { useState, useMemo } from "react";
-import { useGetPolymarketMarkets, getGetPolymarketMarketsQueryKey, useGetNews, getGetNewsQueryKey } from "@workspace/api-client-react";
+import {
+  useGetPolymarketMarkets,
+  getGetPolymarketMarketsQueryKey,
+  useGetNews,
+  getGetNewsQueryKey,
+} from "@workspace/api-client-react";
 import type { PolymarketMarket, NewsItem } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Globe, BarChart2, CalendarDays, AlertTriangle, TrendingUp, TrendingDown,
-  Zap, Shield, Activity, ChevronDown, ChevronUp, Radio, ExternalLink,
-  Newspaper, Clock, Rss,
+  Globe,
+  BarChart2,
+  CalendarDays,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Shield,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  Radio,
+  ExternalLink,
+  Newspaper,
+  Clock,
+  Rss,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 const REGION_CONFIG: Record<string, { label: string; flag: string; keywords: string[] }> = {
-  all:        { label: "All Regions",   flag: "🌐", keywords: [] },
-  americas:   { label: "Americas",      flag: "🌎", keywords: ["us", "usa", "america", "canada", "mexico", "brazil", "latin", "election", "trump", "biden", "congress", "fed", "dollar"] },
-  europe:     { label: "Europe",        flag: "🇪🇺", keywords: ["europe", "eu", "nato", "ukraine", "russia", "uk", "britain", "germany", "france", "ecb", "euro"] },
-  middleeast: { label: "Middle East",   flag: "🌙", keywords: ["iran", "israel", "saudi", "gulf", "opec", "oil", "yemen", "iraq", "syria", "hormuz", "hamas", "hezbollah"] },
-  asia:       { label: "Asia Pacific",  flag: "🌏", keywords: ["china", "taiwan", "japan", "korea", "india", "asean", "xi", "south china", "pacific", "semiconductor"] },
-  global:     { label: "Global",        flag: "⚡", keywords: ["global", "world", "imf", "g7", "g20", "wto", "pandemic", "climate", "inflation", "rate", "nuclear"] },
+  all: { label: "All Regions", flag: "🌐", keywords: [] },
+  americas: {
+    label: "Americas",
+    flag: "🌎",
+    keywords: [
+      "us",
+      "usa",
+      "america",
+      "canada",
+      "mexico",
+      "brazil",
+      "latin",
+      "election",
+      "trump",
+      "biden",
+      "congress",
+      "fed",
+      "dollar",
+    ],
+  },
+  europe: {
+    label: "Europe",
+    flag: "🇪🇺",
+    keywords: [
+      "europe",
+      "eu",
+      "nato",
+      "ukraine",
+      "russia",
+      "uk",
+      "britain",
+      "germany",
+      "france",
+      "ecb",
+      "euro",
+    ],
+  },
+  middleeast: {
+    label: "Middle East",
+    flag: "🌙",
+    keywords: [
+      "iran",
+      "israel",
+      "saudi",
+      "gulf",
+      "opec",
+      "oil",
+      "yemen",
+      "iraq",
+      "syria",
+      "hormuz",
+      "hamas",
+      "hezbollah",
+    ],
+  },
+  asia: {
+    label: "Asia Pacific",
+    flag: "🌏",
+    keywords: [
+      "china",
+      "taiwan",
+      "japan",
+      "korea",
+      "india",
+      "asean",
+      "xi",
+      "south china",
+      "pacific",
+      "semiconductor",
+    ],
+  },
+  global: {
+    label: "Global",
+    flag: "⚡",
+    keywords: [
+      "global",
+      "world",
+      "imf",
+      "g7",
+      "g20",
+      "wto",
+      "pandemic",
+      "climate",
+      "inflation",
+      "rate",
+      "nuclear",
+    ],
+  },
 };
 
 const MARKET_EXPOSURE: Record<string, { tickers: string[]; note: string }> = {
-  oil:      { tickers: ["XOM", "CVX", "USO", "SPY"],   note: "Energy sector + oil-linked assets" },
-  china:    { tickers: ["BABA", "JD", "NVDA", "TSM"],  note: "Semiconductor & China-exposed tech" },
-  taiwan:   { tickers: ["TSM", "NVDA", "AMAT", "SPY"], note: "Semiconductor supply chain at risk" },
-  ukraine:  { tickers: ["CORN", "WEAT", "XOM", "SPY"], note: "Commodities + European defence" },
-  iran:     { tickers: ["USO", "XOM", "GLD", "BTC"],   note: "Oil + safe havens spike on Strait tensions" },
-  election: { tickers: ["SPY", "TLT", "DXY", "BTC"],   note: "Volatility + policy repricing" },
-  fed:      { tickers: ["TLT", "SPY", "GLD", "BTC"],   note: "Rate-sensitive assets across the board" },
-  nuclear:  { tickers: ["GLD", "BTC", "TLT", "VIX"],   note: "Flight to safety — classic risk-off trade" },
-  crypto:   { tickers: ["BTC", "ETH", "SOL", "COIN"],  note: "Direct regulatory or sentiment impact" },
-  default:  { tickers: ["SPY", "GLD", "BTC"],          note: "Broad market + safe-haven impact" },
+  oil: { tickers: ["XOM", "CVX", "USO", "SPY"], note: "Energy sector + oil-linked assets" },
+  china: { tickers: ["BABA", "JD", "NVDA", "TSM"], note: "Semiconductor & China-exposed tech" },
+  taiwan: { tickers: ["TSM", "NVDA", "AMAT", "SPY"], note: "Semiconductor supply chain at risk" },
+  ukraine: { tickers: ["CORN", "WEAT", "XOM", "SPY"], note: "Commodities + European defence" },
+  iran: {
+    tickers: ["USO", "XOM", "GLD", "BTC"],
+    note: "Oil + safe havens spike on Strait tensions",
+  },
+  election: { tickers: ["SPY", "TLT", "DXY", "BTC"], note: "Volatility + policy repricing" },
+  fed: { tickers: ["TLT", "SPY", "GLD", "BTC"], note: "Rate-sensitive assets across the board" },
+  nuclear: {
+    tickers: ["GLD", "BTC", "TLT", "VIX"],
+    note: "Flight to safety — classic risk-off trade",
+  },
+  crypto: { tickers: ["BTC", "ETH", "SOL", "COIN"], note: "Direct regulatory or sentiment impact" },
+  default: { tickers: ["SPY", "GLD", "BTC"], note: "Broad market + safe-haven impact" },
 };
 
 function getMarketExposure(question: string) {
   const q = question.toLowerCase();
-  if (/iran|hormuz|opec|oil/.test(q))              return MARKET_EXPOSURE.oil;
-  if (/china|beijing|ccp/.test(q))                 return MARKET_EXPOSURE.china;
-  if (/taiwan/.test(q))                            return MARKET_EXPOSURE.taiwan;
-  if (/ukraine|russia|zelensky/.test(q))           return MARKET_EXPOSURE.ukraine;
-  if (/election|vote|ballot/.test(q))              return MARKET_EXPOSURE.election;
-  if (/fed|rate|interest|inflation/.test(q))       return MARKET_EXPOSURE.fed;
-  if (/nuclear|nuke|warhead/.test(q))              return MARKET_EXPOSURE.nuclear;
+  if (/iran|hormuz|opec|oil/.test(q)) return MARKET_EXPOSURE.oil;
+  if (/china|beijing|ccp/.test(q)) return MARKET_EXPOSURE.china;
+  if (/taiwan/.test(q)) return MARKET_EXPOSURE.taiwan;
+  if (/ukraine|russia|zelensky/.test(q)) return MARKET_EXPOSURE.ukraine;
+  if (/election|vote|ballot/.test(q)) return MARKET_EXPOSURE.election;
+  if (/fed|rate|interest|inflation/.test(q)) return MARKET_EXPOSURE.fed;
+  if (/nuclear|nuke|warhead/.test(q)) return MARKET_EXPOSURE.nuclear;
   if (/bitcoin|crypto|ethereum|stablecoin/.test(q)) return MARKET_EXPOSURE.crypto;
   return MARKET_EXPOSURE.default;
 }
@@ -54,38 +160,82 @@ function classifyRegion(market: { question: string; category?: string | null }):
 }
 
 function riskLevel(yesPrice: number) {
-  if (yesPrice >= 0.65) return { label: "HIGH",   color: "text-red-400",    bg: "bg-red-500/10",    border: "border-red-500/20" };
-  if (yesPrice >= 0.35) return { label: "MEDIUM", color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/20" };
-  return                       { label: "LOW",    color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
+  if (yesPrice >= 0.65)
+    return {
+      label: "HIGH",
+      color: "text-red-400",
+      bg: "bg-red-500/10",
+      border: "border-red-500/20",
+    };
+  if (yesPrice >= 0.35)
+    return {
+      label: "MEDIUM",
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/20",
+    };
+  return {
+    label: "LOW",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+  };
 }
 
 // ─── Breaking Intel Feed (News + Polymarket merged) ────────────────────────
 function findRelatedMarkets(newsTitle: string, markets: PolymarketMarket[]): PolymarketMarket[] {
   const text = newsTitle.toLowerCase();
   const KEYWORD_GROUPS = [
-    { terms: ["russia", "ukraine", "zelensky", "putin", "kyiv", "donbas", "ceasefire"],           matches: ["russia", "ukraine", "ceasefire"] },
-    { terms: ["iran", "tehran", "hormuz", "strait", "khamenei"],                                   matches: ["iran", "hormuz", "oil"] },
-    { terms: ["china", "beijing", "xi", "ccp", "taiwan", "pla"],                                   matches: ["china", "taiwan", "semiconductor"] },
-    { terms: ["fed", "federal reserve", "powell", "rate", "inflation", "fomc"],                    matches: ["fed", "rate", "inflation", "interest"] },
-    { terms: ["bitcoin", "btc", "ethereum", "crypto", "sec", "regulation"],                        matches: ["bitcoin", "crypto", "ethereum", "regulation"] },
-    { terms: ["election", "trump", "biden", "vote", "congress", "democrat", "republican"],         matches: ["election", "trump", "vote"] },
-    { terms: ["nuclear", "warhead", "nuke", "icbm", "north korea"],                                matches: ["nuclear", "north korea", "warhead"] },
-    { terms: ["oil", "opec", "barrel", "brent", "crude", "energy"],                               matches: ["oil", "opec", "energy", "barrel"] },
-    { terms: ["recession", "gdp", "unemployment", "downturn", "contraction"],                      matches: ["recession", "gdp", "downturn"] },
+    {
+      terms: ["russia", "ukraine", "zelensky", "putin", "kyiv", "donbas", "ceasefire"],
+      matches: ["russia", "ukraine", "ceasefire"],
+    },
+    {
+      terms: ["iran", "tehran", "hormuz", "strait", "khamenei"],
+      matches: ["iran", "hormuz", "oil"],
+    },
+    {
+      terms: ["china", "beijing", "xi", "ccp", "taiwan", "pla"],
+      matches: ["china", "taiwan", "semiconductor"],
+    },
+    {
+      terms: ["fed", "federal reserve", "powell", "rate", "inflation", "fomc"],
+      matches: ["fed", "rate", "inflation", "interest"],
+    },
+    {
+      terms: ["bitcoin", "btc", "ethereum", "crypto", "sec", "regulation"],
+      matches: ["bitcoin", "crypto", "ethereum", "regulation"],
+    },
+    {
+      terms: ["election", "trump", "biden", "vote", "congress", "democrat", "republican"],
+      matches: ["election", "trump", "vote"],
+    },
+    {
+      terms: ["nuclear", "warhead", "nuke", "icbm", "north korea"],
+      matches: ["nuclear", "north korea", "warhead"],
+    },
+    {
+      terms: ["oil", "opec", "barrel", "brent", "crude", "energy"],
+      matches: ["oil", "opec", "energy", "barrel"],
+    },
+    {
+      terms: ["recession", "gdp", "unemployment", "downturn", "contraction"],
+      matches: ["recession", "gdp", "downturn"],
+    },
   ];
 
   const matchTerms: string[] = [];
   for (const group of KEYWORD_GROUPS) {
-    if (group.terms.some(t => text.includes(t))) {
+    if (group.terms.some((t) => text.includes(t))) {
       matchTerms.push(...group.matches);
     }
   }
   if (matchTerms.length === 0) return [];
 
   return markets
-    .filter(m => {
+    .filter((m) => {
       const q = m.question.toLowerCase();
-      return matchTerms.some(t => q.includes(t));
+      return matchTerms.some((t) => q.includes(t));
     })
     .slice(0, 2);
 }
@@ -96,11 +246,19 @@ function PolymarketBadge({ market }: { market: PolymarketMarket }) {
   const isHighRisk = market.yesPrice >= 0.5;
 
   return (
-    <div className={`mt-2 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${isHighRisk ? "border-red-500/25 bg-red-500/8" : "border-amber-500/20 bg-amber-500/5"}`}>
+    <div
+      className={`mt-2 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${isHighRisk ? "border-red-500/25 bg-red-500/8" : "border-amber-500/20 bg-amber-500/5"}`}
+    >
       <div className="shrink-0">
-        <div className={`text-[13px] font-mono font-700 ${isHighRisk ? "text-red-400" : "text-amber-400"}`}>{pct}%</div>
-        {shift != null && Math.abs(shift) > 0.005 && (
-          <div className={`text-[8px] font-mono ${shift > 0 ? "text-red-400" : "text-emerald-400"}`}>
+        <div
+          className={`text-[13px] font-mono font-700 ${isHighRisk ? "text-red-400" : "text-amber-400"}`}
+        >
+          {pct}%
+        </div>
+        {shift !== null && Math.abs(shift) > 0.005 && (
+          <div
+            className={`text-[8px] font-mono ${shift > 0 ? "text-red-400" : "text-emerald-400"}`}
+          >
             {shift > 0 ? "↑" : "↓"} from {((market.yesPrice - shift) * 100).toFixed(0)}%
           </div>
         )}
@@ -109,8 +267,10 @@ function PolymarketBadge({ market }: { market: PolymarketMarket }) {
         <p className="text-[10px] text-white/80 leading-snug line-clamp-2">{market.question}</p>
         <div className="flex items-center gap-1 mt-0.5">
           <span className="text-[8px] font-mono text-muted-foreground/50">Polymarket YES odds</span>
-          {shift != null && Math.abs(shift) > 0.005 && (
-            <span className={`text-[8px] font-mono font-600 ${shift > 0 ? "text-red-400/70" : "text-emerald-400/70"}`}>
+          {shift !== null && Math.abs(shift) > 0.005 && (
+            <span
+              className={`text-[8px] font-mono font-600 ${shift > 0 ? "text-red-400/70" : "text-emerald-400/70"}`}
+            >
               · {shift > 0 ? "rising" : "falling"} since news broke
             </span>
           )}
@@ -120,22 +280,55 @@ function PolymarketBadge({ market }: { market: PolymarketMarket }) {
   );
 }
 
-function NewsIntelCard({ item, relatedMarkets }: { item: NewsItem; relatedMarkets: PolymarketMarket[] }) {
+function NewsIntelCard({
+  item,
+  relatedMarkets,
+}: {
+  item: NewsItem;
+  relatedMarkets: PolymarketMarket[];
+}) {
   const SENTIMENT_CONFIG = {
-    bullish: { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400", label: "BULLISH" },
-    bearish: { color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20",     dot: "bg-red-400",     label: "BEARISH" },
-    neutral: { color: "text-muted-foreground", bg: "bg-white/[0.04]", border: "border-white/[0.07]", dot: "bg-muted-foreground", label: "NEUTRAL" },
+    bullish: {
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/20",
+      dot: "bg-emerald-400",
+      label: "BULLISH",
+    },
+    bearish: {
+      color: "text-red-400",
+      bg: "bg-red-500/10",
+      border: "border-red-500/20",
+      dot: "bg-red-400",
+      label: "BEARISH",
+    },
+    neutral: {
+      color: "text-muted-foreground",
+      bg: "bg-white/[0.04]",
+      border: "border-white/[0.07]",
+      dot: "bg-muted-foreground",
+      label: "NEUTRAL",
+    },
   };
-  const s = SENTIMENT_CONFIG[item.sentiment as keyof typeof SENTIMENT_CONFIG] ?? SENTIMENT_CONFIG.neutral;
+  const s =
+    SENTIMENT_CONFIG[item.sentiment as keyof typeof SENTIMENT_CONFIG] ?? SENTIMENT_CONFIG.neutral;
   let timeAgo = "";
-  try { timeAgo = formatDistanceToNow(new Date(item.publishedAt), { addSuffix: true }); } catch { timeAgo = "recently"; }
+  try {
+    timeAgo = formatDistanceToNow(new Date(item.publishedAt), { addSuffix: true });
+  } catch {
+    timeAgo = "recently";
+  }
 
   return (
-    <div className={`relative border ${relatedMarkets.length > 0 ? "border-amber-500/20 bg-amber-500/[0.03]" : s.border} rounded-xl p-3.5 ${relatedMarkets.length === 0 ? s.bg : ""} transition-all`}>
+    <div
+      className={`relative border ${relatedMarkets.length > 0 ? "border-amber-500/20 bg-amber-500/[0.03]" : s.border} rounded-xl p-3.5 ${relatedMarkets.length === 0 ? s.bg : ""} transition-all`}
+    >
       {item.isBreaking && (
         <div className="absolute top-3 right-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/30">
           <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-          <span className="text-[8px] font-mono font-700 text-red-400 uppercase tracking-widest">Breaking</span>
+          <span className="text-[8px] font-mono font-700 text-red-400 uppercase tracking-widest">
+            Breaking
+          </span>
         </div>
       )}
 
@@ -157,12 +350,20 @@ function NewsIntelCard({ item, relatedMarkets }: { item: NewsItem; relatedMarket
           </a>
 
           {item.description && (
-            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2">{item.description}</p>
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2">
+              {item.description}
+            </p>
           )}
 
           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-            <span className="text-[9px] font-mono font-600 px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-muted-foreground">{item.source}</span>
-            <span className={`text-[9px] font-mono font-700 px-1.5 py-0.5 rounded border ${s.border} ${s.color} ${s.bg}`}>{s.label}</span>
+            <span className="text-[9px] font-mono font-600 px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-muted-foreground">
+              {item.source}
+            </span>
+            <span
+              className={`text-[9px] font-mono font-700 px-1.5 py-0.5 rounded border ${s.border} ${s.color} ${s.bg}`}
+            >
+              {s.label}
+            </span>
             <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground/40 ml-auto">
               <Clock className="w-2.5 h-2.5" />
               {timeAgo}
@@ -179,24 +380,28 @@ function NewsIntelCard({ item, relatedMarkets }: { item: NewsItem; relatedMarket
   );
 }
 
-function BreakingIntelFeed({ news, markets, isLoading }: {
+function BreakingIntelFeed({
+  news,
+  markets,
+  isLoading,
+}: {
   news: NewsItem[] | undefined;
   markets: PolymarketMarket[];
   isLoading: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const items = Array.isArray(news) ? news : [];
-  const breakingItems = items.filter(n => n.isBreaking);
-  const bearishCount = items.filter(n => n.sentiment === "bearish").length;
-  const bullishCount = items.filter(n => n.sentiment === "bullish").length;
-  const visible = expanded ? items : items.slice(0, 6);
+  const breakingItems = items.filter((n) => n.isBreaking);
+  const bearishCount = items.filter((n) => n.sentiment === "bearish").length;
+  const bullishCount = items.filter((n) => n.sentiment === "bullish").length;
+  const _visible = expanded ? items : items.slice(0, 6);
 
   const itemsWithMarkets = useMemo(
-    () => items.map(item => ({ item, relatedMarkets: findRelatedMarkets(item.title, markets) })),
-    [items, markets]
+    () => items.map((item) => ({ item, relatedMarkets: findRelatedMarkets(item.title, markets) })),
+    [items, markets],
   );
   const visibleWithMarkets = expanded ? itemsWithMarkets : itemsWithMarkets.slice(0, 6);
-  const withPolymarket = itemsWithMarkets.filter(x => x.relatedMarkets.length > 0).length;
+  const withPolymarket = itemsWithMarkets.filter((x) => x.relatedMarkets.length > 0).length;
 
   return (
     <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
@@ -206,17 +411,23 @@ function BreakingIntelFeed({ news, markets, isLoading }: {
           <div>
             <div className="flex items-center gap-2">
               <Rss className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[11px] font-mono font-700 text-white uppercase tracking-widest">Intelligence Feed</span>
+              <span className="text-[11px] font-mono font-700 text-white uppercase tracking-widest">
+                Intelligence Feed
+              </span>
               {breakingItems.length > 0 && (
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15 border border-red-500/25">
                   <Radio className="w-2.5 h-2.5 text-red-400 animate-pulse" />
-                  <span className="text-[8px] font-mono text-red-400 font-700">{breakingItems.length} LIVE</span>
+                  <span className="text-[8px] font-mono text-red-400 font-700">
+                    {breakingItems.length} LIVE
+                  </span>
                 </span>
               )}
               {withPolymarket > 0 && (
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
                   <BarChart2 className="w-2.5 h-2.5 text-amber-400" />
-                  <span className="text-[8px] font-mono text-amber-400 font-600">{withPolymarket} with odds</span>
+                  <span className="text-[8px] font-mono text-amber-400 font-600">
+                    {withPolymarket} with odds
+                  </span>
                 </span>
               )}
             </div>
@@ -237,21 +448,49 @@ function BreakingIntelFeed({ news, markets, isLoading }: {
           <div className="mb-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
             <div className="flex items-center justify-between text-[9px] font-mono text-muted-foreground mb-1.5">
               <span>Aggregate News Sentiment</span>
-              <span className={bearishCount > bullishCount ? "text-red-400 font-600" : bullishCount > bearishCount ? "text-emerald-400 font-600" : "text-muted-foreground"}>
-                {bearishCount > bullishCount ? "RISK-OFF" : bullishCount > bearishCount ? "RISK-ON" : "MIXED"}
+              <span
+                className={
+                  bearishCount > bullishCount
+                    ? "text-red-400 font-600"
+                    : bullishCount > bearishCount
+                      ? "text-emerald-400 font-600"
+                      : "text-muted-foreground"
+                }
+              >
+                {bearishCount > bullishCount
+                  ? "RISK-OFF"
+                  : bullishCount > bearishCount
+                    ? "RISK-ON"
+                    : "MIXED"}
               </span>
             </div>
             <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
-              <div className="h-full bg-emerald-500/50 transition-all" style={{ width: `${items.length ? (bullishCount / items.length) * 100 : 0}%` }} />
-              <div className="h-full bg-muted-foreground/20 transition-all" style={{ width: `${items.length ? ((items.length - bullishCount - bearishCount) / items.length) * 100 : 0}%` }} />
-              <div className="h-full bg-red-500/50 transition-all" style={{ width: `${items.length ? (bearishCount / items.length) * 100 : 0}%` }} />
+              <div
+                className="h-full bg-emerald-500/50 transition-all"
+                style={{ width: `${items.length ? (bullishCount / items.length) * 100 : 0}%` }}
+              />
+              <div
+                className="h-full bg-muted-foreground/20 transition-all"
+                style={{
+                  width: `${items.length ? ((items.length - bullishCount - bearishCount) / items.length) * 100 : 0}%`,
+                }}
+              />
+              <div
+                className="h-full bg-red-500/50 transition-all"
+                style={{ width: `${items.length ? (bearishCount / items.length) * 100 : 0}%` }}
+              />
             </div>
           </div>
         )}
 
         {isLoading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />)}
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-24 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse"
+              />
+            ))}
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
@@ -265,10 +504,18 @@ function BreakingIntelFeed({ news, markets, isLoading }: {
             ))}
             {items.length > 6 && (
               <button
-                onClick={() => setExpanded(o => !o)}
+                onClick={() => setExpanded((o) => !o)}
                 className="w-full text-[10px] font-mono text-muted-foreground/60 hover:text-white py-2 transition-colors flex items-center justify-center gap-1.5"
               >
-                {expanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> {items.length - 6} more stories</>}
+                {expanded ? (
+                  <>
+                    <ChevronUp className="w-3 h-3" /> Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3 h-3" /> {items.length - 6} more stories
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -279,15 +526,31 @@ function BreakingIntelFeed({ news, markets, isLoading }: {
 }
 
 function GlobalRiskBarometer({ markets }: { markets: PolymarketMarket[] }) {
-  const geoMarkets = markets.filter(m => {
+  const geoMarkets = markets.filter((m) => {
     const q = m.question.toLowerCase();
-    return /war|conflict|attack|crisis|sanction|nuclear|invasion|strike|threat|tension|ceasefire|escalat/.test(q);
+    return /war|conflict|attack|crisis|sanction|nuclear|invasion|strike|threat|tension|ceasefire|escalat/.test(
+      q,
+    );
   });
-  const score = geoMarkets.length === 0 ? 0 : geoMarkets.reduce((s, m) => s + m.yesPrice, 0) / geoMarkets.length;
+  const score =
+    geoMarkets.length === 0
+      ? 0
+      : geoMarkets.reduce((s, m) => s + m.yesPrice, 0) / geoMarkets.length;
   const level = score >= 0.55 ? "ELEVATED" : score >= 0.35 ? "MODERATE" : "CONTAINED";
-  const levelColor = score >= 0.55 ? "text-red-400" : score >= 0.35 ? "text-amber-400" : "text-emerald-400";
-  const barColor = score >= 0.55 ? "from-red-600 to-red-400" : score >= 0.35 ? "from-amber-600 to-amber-400" : "from-emerald-600 to-emerald-400";
-  const glow = score >= 0.55 ? "rgba(248,113,113,0.4)" : score >= 0.35 ? "rgba(251,191,36,0.4)" : "rgba(52,211,153,0.4)";
+  const levelColor =
+    score >= 0.55 ? "text-red-400" : score >= 0.35 ? "text-amber-400" : "text-emerald-400";
+  const barColor =
+    score >= 0.55
+      ? "from-red-600 to-red-400"
+      : score >= 0.35
+        ? "from-amber-600 to-amber-400"
+        : "from-emerald-600 to-emerald-400";
+  const glow =
+    score >= 0.55
+      ? "rgba(248,113,113,0.4)"
+      : score >= 0.35
+        ? "rgba(251,191,36,0.4)"
+        : "rgba(52,211,153,0.4)";
 
   return (
     <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
@@ -295,17 +558,30 @@ function GlobalRiskBarometer({ markets }: { markets: PolymarketMarket[] }) {
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Global Risk Barometer</div>
-            <div className="flex items-baseline gap-2">
-              <span className={`font-display text-3xl font-800 ${levelColor}`}>{(score * 100).toFixed(0)}</span>
-              <span className="text-[11px] font-mono text-muted-foreground">/100</span>
-              <span className={`text-[10px] font-mono font-700 ${levelColor} ml-1 tracking-widest`}>{level}</span>
+            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
+              Global Risk Barometer
             </div>
-            <p className="text-[10px] text-muted-foreground font-mono">Aggregated from {geoMarkets.length} conflict & crisis markets</p>
+            <div className="flex items-baseline gap-2">
+              <span className={`font-display text-3xl font-800 ${levelColor}`}>
+                {(score * 100).toFixed(0)}
+              </span>
+              <span className="text-[11px] font-mono text-muted-foreground">/100</span>
+              <span className={`text-[10px] font-mono font-700 ${levelColor} ml-1 tracking-widest`}>
+                {level}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground font-mono">
+              Aggregated from {geoMarkets.length} conflict & crisis markets
+            </p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <Activity className={`w-5 h-5 ${levelColor}`} style={{ filter: `drop-shadow(0 0 6px ${glow})` }} />
-            <div className="text-[9px] font-mono text-muted-foreground">{markets.length} total markets</div>
+            <Activity
+              className={`w-5 h-5 ${levelColor}`}
+              style={{ filter: `drop-shadow(0 0 6px ${glow})` }}
+            />
+            <div className="text-[9px] font-mono text-muted-foreground">
+              {markets.length} total markets
+            </div>
           </div>
         </div>
         <div className="mt-3 space-y-1.5">
@@ -316,7 +592,10 @@ function GlobalRiskBarometer({ markets }: { markets: PolymarketMarket[] }) {
             />
           </div>
           <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
-            <span>CONTAINED</span><span>MODERATE</span><span>ELEVATED</span><span>CRITICAL</span>
+            <span>CONTAINED</span>
+            <span>MODERATE</span>
+            <span>ELEVATED</span>
+            <span>CRITICAL</span>
           </div>
         </div>
       </CardContent>
@@ -324,7 +603,13 @@ function GlobalRiskBarometer({ markets }: { markets: PolymarketMarket[] }) {
   );
 }
 
-function MarketCard({ market, region }: { market: PolymarketMarket & { region: string }; region: string }) {
+function MarketCard({
+  market,
+  region,
+}: {
+  market: PolymarketMarket & { region: string };
+  region: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const risk = riskLevel(market.yesPrice);
   const exposure = getMarketExposure(market.question);
@@ -332,13 +617,19 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
   const shift = market.oddsShift;
 
   return (
-    <Card className={`border ${risk.border} ${risk.bg} backdrop-blur-sm overflow-hidden transition-all`}>
+    <Card
+      className={`border ${risk.border} ${risk.bg} backdrop-blur-sm overflow-hidden transition-all`}
+    >
       <CardContent className="p-4">
         <div className="flex gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white text-[13px] leading-snug mb-1.5">{market.question}</h3>
+            <h3 className="font-semibold text-white text-[13px] leading-snug mb-1.5">
+              {market.question}
+            </h3>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[9px] font-mono font-700 px-2 py-0.5 rounded-full border ${risk.border} ${risk.color} ${risk.bg} uppercase tracking-widest`}>
+              <span
+                className={`text-[9px] font-mono font-700 px-2 py-0.5 rounded-full border ${risk.border} ${risk.color} ${risk.bg} uppercase tracking-widest`}
+              >
                 {risk.label} RISK
               </span>
               {market.category && (
@@ -355,14 +646,25 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
             <div className={`font-display text-2xl font-800 ${risk.color}`}>
               {(market.yesPrice * 100).toFixed(0)}%
             </div>
-            {shift != null && Math.abs(shift) > 0.005 ? (
-              <div className={`text-[9px] font-mono font-600 flex items-center gap-0.5 ${shift > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                {shift > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {shift > 0 ? "+" : ""}{(shift * 100).toFixed(1)}pp
+            {shift !== null && Math.abs(shift) > 0.005 ? (
+              <div
+                className={`text-[9px] font-mono font-600 flex items-center gap-0.5 ${shift > 0 ? "text-red-400" : "text-emerald-400"}`}
+              >
+                {shift > 0 ? (
+                  <TrendingUp className="w-3 h-3" />
+                ) : (
+                  <TrendingDown className="w-3 h-3" />
+                )}
+                {shift > 0 ? "+" : ""}
+                {(shift * 100).toFixed(1)}pp
               </div>
             ) : (
               <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
-                {yesDir === "up" ? <TrendingUp className="w-3 h-3 text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-red-400" />}
+                {yesDir === "up" ? (
+                  <TrendingUp className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-red-400" />
+                )}
                 YES
               </div>
             )}
@@ -373,18 +675,28 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
           <div className="relative h-7 bg-white/[0.04] rounded-lg overflow-hidden border border-white/[0.04]">
             <div
               className="absolute left-0 top-0 bottom-0 transition-all duration-500"
-              style={{ width: `${market.yesPrice * 100}%`, background: `rgba(${market.yesPrice > 0.6 ? "239,68,68" : market.yesPrice > 0.4 ? "251,191,36" : "52,211,153"},0.2)` }}
+              style={{
+                width: `${market.yesPrice * 100}%`,
+                background: `rgba(${market.yesPrice > 0.6 ? "239,68,68" : market.yesPrice > 0.4 ? "251,191,36" : "52,211,153"},0.2)`,
+              }}
             />
             <div className="relative flex justify-between w-full h-full px-2.5 items-center z-10">
               <span className="text-[10px] font-semibold font-mono text-emerald-400">YES</span>
-              <span className="text-[11px] font-mono font-600 text-white">{(market.yesPrice * 100).toFixed(1)}%</span>
+              <span className="text-[11px] font-mono font-600 text-white">
+                {(market.yesPrice * 100).toFixed(1)}%
+              </span>
             </div>
           </div>
           <div className="relative h-7 bg-white/[0.04] rounded-lg overflow-hidden border border-white/[0.04]">
-            <div className="absolute left-0 top-0 bottom-0 bg-blue-500/10" style={{ width: `${market.noPrice * 100}%` }} />
+            <div
+              className="absolute left-0 top-0 bottom-0 bg-blue-500/10"
+              style={{ width: `${market.noPrice * 100}%` }}
+            />
             <div className="relative flex justify-between w-full h-full px-2.5 items-center z-10">
               <span className="text-[10px] font-semibold font-mono text-blue-400">NO</span>
-              <span className="text-[11px] font-mono font-600 text-white">{(market.noPrice * 100).toFixed(1)}%</span>
+              <span className="text-[11px] font-mono font-600 text-white">
+                {(market.noPrice * 100).toFixed(1)}%
+              </span>
             </div>
           </div>
         </div>
@@ -393,7 +705,9 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
           <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
             <div className="flex items-center gap-1">
               <BarChart2 className="w-3 h-3" />
-              <span>${(market.volume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} vol</span>
+              <span>
+                ${(market.volume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} vol
+              </span>
             </div>
             {market.endDate && (
               <div className="flex items-center gap-1">
@@ -403,7 +717,7 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
             )}
           </div>
           <button
-            onClick={() => setExpanded(o => !o)}
+            onClick={() => setExpanded((o) => !o)}
             className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground/60 hover:text-muted-foreground transition-colors"
           >
             <Zap className="w-3 h-3 text-primary/60" />
@@ -414,10 +728,17 @@ function MarketCard({ market, region }: { market: PolymarketMarket & { region: s
 
         {expanded && (
           <div className="mt-3 pt-3 border-t border-white/[0.05] space-y-2">
-            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mb-2">Exposed Assets</div>
+            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mb-2">
+              Exposed Assets
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {exposure.tickers.map(t => (
-                <span key={t} className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary">{t}</span>
+              {exposure.tickers.map((t) => (
+                <span
+                  key={t}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary"
+                >
+                  {t}
+                </span>
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground/80 leading-relaxed">{exposure.note}</p>
@@ -442,42 +763,50 @@ export default function Geopolitics() {
   const marketList = Array.isArray(markets) ? markets : [];
 
   const marketsWithRegion = useMemo(
-    () => marketList.map(m => ({ ...m, region: classifyRegion(m) })),
-    [marketList]
+    () => marketList.map((m) => ({ ...m, region: classifyRegion(m) })),
+    [marketList],
   );
 
   const filtered = useMemo(() => {
-    const base = activeRegion === "all" ? marketsWithRegion : marketsWithRegion.filter(m => m.region === activeRegion);
+    const base =
+      activeRegion === "all"
+        ? marketsWithRegion
+        : marketsWithRegion.filter((m) => m.region === activeRegion);
     return [...base].sort((a, b) => {
-      if (sortBy === "risk")     return b.yesPrice - a.yesPrice;
-      if (sortBy === "volume")   return (b.volume ?? 0) - (a.volume ?? 0);
+      if (sortBy === "risk") return b.yesPrice - a.yesPrice;
+      if (sortBy === "volume") return (b.volume ?? 0) - (a.volume ?? 0);
       if (sortBy === "deadline") {
-        if (!a.endDate) return 1; if (!b.endDate) return -1;
+        if (!a.endDate) return 1;
+        if (!b.endDate) return -1;
         return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
       }
       return 0;
     });
   }, [marketsWithRegion, activeRegion, sortBy]);
 
-  const highRiskCount   = filtered.filter(m => m.yesPrice >= 0.65).length;
-  const mediumRiskCount = filtered.filter(m => m.yesPrice >= 0.35 && m.yesPrice < 0.65).length;
+  const highRiskCount = filtered.filter((m) => m.yesPrice >= 0.65).length;
+  const mediumRiskCount = filtered.filter((m) => m.yesPrice >= 0.35 && m.yesPrice < 0.65).length;
 
   return (
     <div className="space-y-5 animate-fade-up">
       <div>
-        <h1 className="font-display text-[22px] font-700 text-white tracking-tight leading-none">Geopolitics</h1>
+        <h1 className="font-display text-[22px] font-700 text-white tracking-tight leading-none">
+          Geopolitics
+        </h1>
         <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5 font-mono">
           <Globe className="w-3 h-3 text-primary" />
           Real-money prediction market intelligence · Breaking news with live odds
         </p>
       </div>
 
-      {!marketsLoading && marketList.length > 0 && (
-        <GlobalRiskBarometer markets={marketList} />
-      )}
+      {!marketsLoading && marketList.length > 0 && <GlobalRiskBarometer markets={marketList} />}
 
       {/* Breaking Intelligence Feed — news + Polymarket odds merged */}
-      <BreakingIntelFeed news={news as NewsItem[] | undefined} markets={marketList} isLoading={newsLoading} />
+      <BreakingIntelFeed
+        news={news as NewsItem[] | undefined}
+        markets={marketList}
+        isLoading={newsLoading}
+      />
 
       {/* Risk summary */}
       {filtered.length > 0 && (
@@ -485,23 +814,29 @@ export default function Geopolitics() {
           {highRiskCount > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20">
               <AlertTriangle className="w-3 h-3 text-red-400" />
-              <span className="text-[10px] font-mono text-red-400 font-600">{highRiskCount} HIGH</span>
+              <span className="text-[10px] font-mono text-red-400 font-600">
+                {highRiskCount} HIGH
+              </span>
             </div>
           )}
           {mediumRiskCount > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
               <Shield className="w-3 h-3 text-amber-400" />
-              <span className="text-[10px] font-mono text-amber-400 font-600">{mediumRiskCount} MEDIUM</span>
+              <span className="text-[10px] font-mono text-amber-400 font-600">
+                {mediumRiskCount} MEDIUM
+              </span>
             </div>
           )}
           <div className="ml-auto flex items-center gap-1.5">
             <span className="text-[9px] font-mono text-muted-foreground">Sort:</span>
-            {(["risk", "volume", "deadline"] as const).map(s => (
+            {(["risk", "volume", "deadline"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSortBy(s)}
                 className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wide transition-colors ${
-                  sortBy === s ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground hover:text-white"
+                  sortBy === s
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:text-white"
                 }`}
               >
                 {s}
@@ -532,7 +867,12 @@ export default function Geopolitics() {
       {/* Markets grid */}
       {marketsLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-40 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />)}
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-40 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse"
+            />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
@@ -541,7 +881,7 @@ export default function Geopolitics() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(market => (
+          {filtered.map((market) => (
             <MarketCard key={market.id} market={market} region={market.region} />
           ))}
         </div>

@@ -15,7 +15,13 @@ import {
 import { runDevilsAdvocate, runTailRiskAgent } from "./critique-agents";
 import { synthesize } from "./synthesis-agent";
 import { runMetaAgent } from "./meta-agent";
-import { loadBeliefState, saveBeliefState, appendBeliefHistory, computeBeliefDynamics, enrichTokensWithDeltas } from "./belief-state";
+import {
+  loadBeliefState,
+  saveBeliefState,
+  appendBeliefHistory,
+  computeBeliefDynamics,
+  enrichTokensWithDeltas,
+} from "./belief-state";
 import {
   fetchStockHistory,
   fetchCryptoHistory,
@@ -25,12 +31,14 @@ import {
 } from "../market-data";
 import { logger } from "../logger";
 
-function computeRSI(closes: number[], period = 14): number {
+export function computeRSI(closes: number[], period = 14): number {
   if (closes.length < period + 1) return 50;
-  let gains = 0, losses = 0;
+  let gains = 0,
+    losses = 0;
   for (let i = closes.length - period; i < closes.length; i++) {
     const d = closes[i] - closes[i - 1];
-    if (d > 0) gains += d; else losses -= d;
+    if (d > 0) gains += d;
+    else losses -= d;
   }
   const ag = gains / period;
   const al = losses / period;
@@ -38,7 +46,7 @@ function computeRSI(closes: number[], period = 14): number {
   return 100 - 100 / (1 + ag / al);
 }
 
-function computeMACDHistogram(closes: number[]): number {
+export function computeMACDHistogram(closes: number[]): number {
   if (closes.length < 26) return 0;
   const ema = (data: number[], p: number) => {
     const k = 2 / (p + 1);
@@ -50,7 +58,7 @@ function computeMACDHistogram(closes: number[]): number {
   return macd - macd * 0.9;
 }
 
-function computeBollingerB(closes: number[], period = 20): number {
+export function computeBollingerB(closes: number[], period = 20): number {
   if (closes.length < period) return 0.5;
   const slice = closes.slice(-period);
   const mid = slice.reduce((a, b) => a + b, 0) / period;
@@ -97,7 +105,7 @@ async function persistAgentRun(agentType: string): Promise<void> {
 export async function runLattice(
   symbol: string,
   timeframe: string,
-  useV3 = false
+  useV3 = false,
 ): Promise<LatticeResult> {
   const runId = nanoid(12);
   const version = useV3 ? "v3" : "v2";
@@ -112,27 +120,26 @@ export async function runLattice(
     if (isCrypto) {
       const coinId = CRYPTO_ID_MAP[symbol]?.id ?? symbol.toLowerCase();
       const history = await fetchCryptoHistory(coinId, 60);
-      closes = history.filter((h) => h.close != null).map((h) => h.close!);
+      closes = history.filter((h) => h.close !== null).map((h) => h.close!);
       const prices = await fetchCryptoPrices();
       const cp = prices.find((p) => p.symbol === symbol);
       if (cp) currentPrice = cp.price;
     } else {
       const history = await fetchStockHistory(symbol, 60);
-      closes = history.filter((h) => h.close != null).map((h) => h.close!);
+      closes = history.filter((h) => h.close !== null).map((h) => h.close!);
       const sp = await fetchStockPrice(symbol);
       currentPrice = sp.price;
     }
   } catch (err) {
     logger.warn({ symbol, err }, "Could not fetch live data for lattice, using synthetic");
-    closes = Array.from({ length: 40 }, (_, i) =>
-      currentPrice * (1 + Math.sin(i * 0.4) * 0.03 + (Math.random() - 0.5) * 0.01)
+    closes = Array.from(
+      { length: 40 },
+      (_, i) => currentPrice * (1 + Math.sin(i * 0.4) * 0.03 + (Math.random() - 0.5) * 0.01),
     );
   }
 
   if (closes.length < 5) {
-    closes = Array.from({ length: 40 }, (_, i) =>
-      100 * (1 + Math.sin(i * 0.4) * 0.03)
-    );
+    closes = Array.from({ length: 40 }, (_, i) => 100 * (1 + Math.sin(i * 0.4) * 0.03));
     currentPrice = 100;
   }
 
@@ -143,7 +150,12 @@ export async function runLattice(
   // In v3 mode, load previous belief state in parallel with hive + news
   const [hive, newsContext, prevState] = await Promise.all([
     extractHiveSignal(symbol),
-    getNewsContextForSymbol(symbol).catch(() => ({ sentiment: 0, weight: 0, headlines: [], breakingAlert: false })),
+    getNewsContextForSymbol(symbol).catch(() => ({
+      sentiment: 0,
+      weight: 0,
+      headlines: [],
+      breakingAlert: false,
+    })),
     useV3 ? loadBeliefState(symbol) : Promise.resolve(null),
   ]);
 
@@ -151,21 +163,37 @@ export async function runLattice(
     rsi: computeRSI(closes),
     macdHistogram: computeMACDHistogram(closes),
     bollingerPercentB: computeBollingerB(closes),
-    maCross: closes.length >= 20
-      ? ((closes[closes.length - 1] / (closes.slice(-20).reduce((a, b) => a + b, 0) / 20)) - 1) * 100
-      : 0,
-    momentum5d:
-      closes.length >= 5
-        ? ((closes[closes.length - 1] / closes[closes.length - 5] - 1) * 100)
+    maCross:
+      closes.length >= 20
+        ? (closes[closes.length - 1] / (closes.slice(-20).reduce((a, b) => a + b, 0) / 20) - 1) *
+          100
         : 0,
+    momentum5d:
+      closes.length >= 5 ? (closes[closes.length - 1] / closes[closes.length - 5] - 1) * 100 : 0,
     volatility: regime.volatility,
   };
 
-  const hiveToken = { id: nanoid(8), agentType: "hive_polymarket" as const, round: 0,
-    hypothesis: (hive.probability > 0.54 ? "bullish" : hive.probability < 0.46 ? "bearish" : "neutral") as "bullish" | "bearish" | "neutral",
-    probability: hive.probability, confidence: hive.confidence,
-    rationale: [`Polymarket liquidity-weighted signal: ${(hive.probability * 100).toFixed(1)}% bullish`, `Liquidity score: ${hive.liquidityScore.toFixed(2)}`],
-    shapHive: 1, shapAi: 0, shapGeo: hive.geoPressure, liquidityScore: hive.liquidityScore, parentIds: [] };
+  const hiveToken = {
+    id: nanoid(8),
+    agentType: "hive_polymarket" as const,
+    round: 0,
+    hypothesis: (hive.probability > 0.54
+      ? "bullish"
+      : hive.probability < 0.46
+        ? "bearish"
+        : "neutral") as "bullish" | "bearish" | "neutral",
+    probability: hive.probability,
+    confidence: hive.confidence,
+    rationale: [
+      `Polymarket liquidity-weighted signal: ${(hive.probability * 100).toFixed(1)}% bullish`,
+      `Liquidity score: ${hive.liquidityScore.toFixed(2)}`,
+    ],
+    shapHive: 1,
+    shapAi: 0,
+    shapGeo: hive.geoPressure,
+    liquidityScore: hive.liquidityScore,
+    parentIds: [],
+  };
 
   const momToken = momentumAgent(features, regime, [hiveToken.id], symbol, timeframe);
   const meanToken = meanReversionAgent(features, regime, [hiveToken.id], symbol, timeframe);
@@ -184,7 +212,7 @@ export async function runLattice(
     regime,
     hypothesisTokens.map((t) => t.id),
     symbol,
-    timeframe
+    timeframe,
   );
 
   const tailResult = runTailRiskAgent(
@@ -194,7 +222,7 @@ export async function runLattice(
     devilResult.tokens.map((t) => t.id),
     symbol,
     timeframe,
-    newsContext
+    newsContext,
   );
 
   const agentReputations = await getAgentReputations();
@@ -211,10 +239,16 @@ export async function runLattice(
     symbol,
     timeframe,
     currentPrice,
-    [synthesis.token.id]
+    [synthesis.token.id],
   );
 
-  const allTokens = [hiveToken, ...hypothesisTokens, ...critiqueTokens, synthesis.token, meta.token];
+  const allTokens = [
+    hiveToken,
+    ...hypothesisTokens,
+    ...critiqueTokens,
+    synthesis.token,
+    meta.token,
+  ];
   const allDebateRounds = [...devilResult.rounds, ...tailResult.rounds];
 
   // ─── v3: Compute belief dynamics and enrich tokens ────────────────────────
@@ -250,14 +284,17 @@ export async function runLattice(
       });
       beliefDynamics = dynamics;
 
-      logger.info({
-        symbol,
-        runId,
-        delta: dynamics.delta,
-        momentum: dynamics.momentum,
-        convictionShift: dynamics.convictionShift,
-        sessionCount: dynamics.sessionCount,
-      }, "HPL-HPA v3 belief dynamics computed");
+      logger.info(
+        {
+          symbol,
+          runId,
+          delta: dynamics.delta,
+          momentum: dynamics.momentum,
+          convictionShift: dynamics.convictionShift,
+          sessionCount: dynamics.sessionCount,
+        },
+        "HPL-HPA v3 belief dynamics computed",
+      );
     } catch (err) {
       logger.warn({ err, symbol }, "v3 belief dynamics failed — result returned without dynamics");
     }
@@ -287,7 +324,16 @@ export async function runLattice(
     logger.warn({ err }, "Failed to persist lattice run");
   }
 
-  logger.info({ symbol, runId, direction: meta.finalPrediction.direction, score: meta.finalPrediction.hivemindScore, version }, "HPL lattice run complete");
+  logger.info(
+    {
+      symbol,
+      runId,
+      direction: meta.finalPrediction.direction,
+      score: meta.finalPrediction.hivemindScore,
+      version,
+    },
+    "HPL lattice run complete",
+  );
 
   return {
     runId,
@@ -324,12 +370,54 @@ export async function getAllAgentStates(): Promise<AgentState[]> {
 
 export function getStaticAgentStates(): AgentState[] {
   const agents = [
-    { agentId: "hypothesis_momentum", agentType: "hypothesis_momentum", reputation: 1.12, brierScore: 0.21, totalRuns: 48, correctRuns: 31 },
-    { agentId: "hypothesis_meanrevert", agentType: "hypothesis_meanrevert", reputation: 0.94, brierScore: 0.26, totalRuns: 48, correctRuns: 26 },
-    { agentId: "hypothesis_volregime", agentType: "hypothesis_volregime", reputation: 1.05, brierScore: 0.23, totalRuns: 48, correctRuns: 29 },
-    { agentId: "hypothesis_hive", agentType: "hypothesis_hive", reputation: 1.08, brierScore: 0.22, totalRuns: 48, correctRuns: 30 },
-    { agentId: "critique_devil", agentType: "critique_devil", reputation: 0.98, brierScore: 0.24, totalRuns: 48, correctRuns: 27 },
-    { agentId: "critique_tailrisk", agentType: "critique_tailrisk", reputation: 1.01, brierScore: 0.24, totalRuns: 48, correctRuns: 28 },
+    {
+      agentId: "hypothesis_momentum",
+      agentType: "hypothesis_momentum",
+      reputation: 1.12,
+      brierScore: 0.21,
+      totalRuns: 48,
+      correctRuns: 31,
+    },
+    {
+      agentId: "hypothesis_meanrevert",
+      agentType: "hypothesis_meanrevert",
+      reputation: 0.94,
+      brierScore: 0.26,
+      totalRuns: 48,
+      correctRuns: 26,
+    },
+    {
+      agentId: "hypothesis_volregime",
+      agentType: "hypothesis_volregime",
+      reputation: 1.05,
+      brierScore: 0.23,
+      totalRuns: 48,
+      correctRuns: 29,
+    },
+    {
+      agentId: "hypothesis_hive",
+      agentType: "hypothesis_hive",
+      reputation: 1.08,
+      brierScore: 0.22,
+      totalRuns: 48,
+      correctRuns: 30,
+    },
+    {
+      agentId: "critique_devil",
+      agentType: "critique_devil",
+      reputation: 0.98,
+      brierScore: 0.24,
+      totalRuns: 48,
+      correctRuns: 27,
+    },
+    {
+      agentId: "critique_tailrisk",
+      agentType: "critique_tailrisk",
+      reputation: 1.01,
+      brierScore: 0.24,
+      totalRuns: 48,
+      correctRuns: 28,
+    },
   ];
   return agents;
 }

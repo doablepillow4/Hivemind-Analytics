@@ -37,9 +37,7 @@ export function Layout({ children }: LayoutProps) {
       </header>
 
       <main className="flex-1 overflow-y-auto pb-24">
-        <div className="px-4 py-6 max-w-2xl mx-auto">
-          {children}
-        </div>
+        <div className="px-4 py-6 max-w-2xl mx-auto">{children}</div>
       </main>
 
       <BottomNav />

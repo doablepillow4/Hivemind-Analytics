@@ -58,10 +58,7 @@ export async function saveBeliefState(state: BeliefState): Promise<void> {
       .where(eq(beliefStatesTable.symbol, state.symbol));
 
     if (existing.length > 0) {
-      await db
-        .update(beliefStatesTable)
-        .set(row)
-        .where(eq(beliefStatesTable.symbol, state.symbol));
+      await db.update(beliefStatesTable).set(row).where(eq(beliefStatesTable.symbol, state.symbol));
     } else {
       await db.insert(beliefStatesTable).values(row);
     }
@@ -105,16 +102,19 @@ export async function appendBeliefHistory(opts: {
 
 export async function queryBeliefHistory(
   symbol: string,
-  limit: number
-): Promise<BeliefDynamics & {
-  runId: string;
-  symbol: string;
-  finalProbability: number;
-  finalDirection: Direction;
-  hivemindScore: number;
-  regime: Regime;
-  createdAt: string;
-}[]> {
+  limit: number,
+): Promise<
+  BeliefDynamics &
+    {
+      runId: string;
+      symbol: string;
+      finalProbability: number;
+      finalDirection: Direction;
+      hivemindScore: number;
+      regime: Regime;
+      createdAt: string;
+    }[]
+> {
   const rows = await db
     .select()
     .from(beliefHistoryTable)
@@ -154,17 +154,24 @@ export function computeBeliefDynamics(opts: {
   allTokens: BeliefToken[];
   prev: BeliefState | null;
 }): { dynamics: BeliefDynamics; newState: BeliefState } {
-  const { symbol, runId, finalProbability, finalDirection, hivemindScore, regime, allTokens, prev } = opts;
+  const {
+    symbol,
+    runId,
+    finalProbability,
+    finalDirection,
+    hivemindScore,
+    regime,
+    allTokens,
+    prev,
+  } = opts;
 
-  const delta = prev
-    ? parseFloat((finalProbability - prev.finalProbability).toFixed(6))
-    : 0;
+  const delta = prev ? parseFloat((finalProbability - prev.finalProbability).toFixed(6)) : 0;
 
   const rawHistory = prev ? [...prev.deltaHistory, delta] : [delta];
   const deltaHistory = rawHistory.slice(-10);
 
   const momentum = parseFloat(
-    (deltaHistory.reduce((s, d) => s + d, 0) / deltaHistory.length).toFixed(6)
+    (deltaHistory.reduce((s, d) => s + d, 0) / deltaHistory.length).toFixed(6),
   );
 
   const prevMomentum = prev?.momentum ?? 0;
@@ -172,16 +179,15 @@ export function computeBeliefDynamics(opts: {
 
   // Stability = 1 – normalised std-dev of recent deltas (0 = chaotic, 1 = rock-solid)
   const meanDelta = deltaHistory.reduce((s, d) => s + d, 0) / deltaHistory.length;
-  const variance = deltaHistory.reduce((s, d) => s + Math.pow(d - meanDelta, 2), 0) / deltaHistory.length;
+  const variance =
+    deltaHistory.reduce((s, d) => s + Math.pow(d - meanDelta, 2), 0) / deltaHistory.length;
   const stability = parseFloat(Math.max(0, 1 - Math.min(1, Math.sqrt(variance) * 15)).toFixed(4));
 
   let convictionShift: BeliefDynamics["convictionShift"] = "stable";
   if (prev) {
     const prevDir = prev.finalDirection;
     const dirReversed =
-      prevDir !== "neutral" &&
-      finalDirection !== "neutral" &&
-      prevDir !== finalDirection;
+      prevDir !== "neutral" && finalDirection !== "neutral" && prevDir !== finalDirection;
 
     if (dirReversed) {
       convictionShift = "reversing";
@@ -228,7 +234,7 @@ export function computeBeliefDynamics(opts: {
 export function enrichTokensWithDeltas(
   tokens: BeliefToken[],
   prev: BeliefState,
-  dynamics: BeliefDynamics
+  dynamics: BeliefDynamics,
 ): void {
   for (const token of tokens) {
     const prevProb = prev.agentProbabilities[token.agentType];

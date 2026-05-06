@@ -4,16 +4,17 @@ A market intelligence dashboard that aggregates real-time financial data, geopol
 
 ## Run & Operate
 
-| Command | What it does |
-|---|---|
-| `pnpm install` | Install all workspace dependencies |
-| `pnpm --filter @workspace/db run push` | Apply DB schema to Postgres |
-| `pnpm --filter @workspace/api-server run dev` | Build + start API server (PORT required) |
-| `pnpm --filter @workspace/hivemind run dev` | Start Vite dev server (PORT + BASE_PATH required) |
+| Command                                       | What it does                                      |
+| --------------------------------------------- | ------------------------------------------------- |
+| `pnpm install`                                | Install all workspace dependencies                |
+| `pnpm --filter @workspace/db run push`        | Apply DB schema to Postgres                       |
+| `pnpm --filter @workspace/api-server run dev` | Build + start API server (PORT required)          |
+| `pnpm --filter @workspace/hivemind run dev`   | Start Vite dev server (PORT + BASE_PATH required) |
 
 **Required env vars:** `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (all set by Replit DB provisioning — no extra keys needed)
 
 **Workflows:**
+
 - `API Server` → `PORT=8080 pnpm --filter @workspace/api-server run dev` (waitForPort 8080)
 - `Start application` → `PORT=22203 BASE_PATH=/ pnpm --filter @workspace/hivemind run dev` (waitForPort 22203)
 
@@ -60,10 +61,10 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 
 ### Key API endpoints (Lattice)
 
-| Method | Path | Notes |
-|---|---|---|
-| `POST` | `/api/lattice/run` | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response |
-| `GET` | `/api/lattice/belief-history/:symbol` | `?limit=N` (default 50, max 200) — chronological conviction history |
+| Method | Path                                  | Notes                                                                  |
+| ------ | ------------------------------------- | ---------------------------------------------------------------------- |
+| `POST` | `/api/lattice/run`                    | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response |
+| `GET`  | `/api/lattice/belief-history/:symbol` | `?limit=N` (default 50, max 200) — chronological conviction history    |
 
 ## User preferences
 

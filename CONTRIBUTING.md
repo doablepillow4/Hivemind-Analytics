@@ -103,10 +103,10 @@ pnpm --filter @workspace/hivemind run dev
 
 ## Architecture Rules
 
-| Rule | Reason |
-|---|---|
-| OpenAPI spec is the single source of truth for all routes | Keeps client and server in sync automatically |
-| Orval codegen uses `mode: "single"` for Zod schemas | Prevents naming conflicts between Zod schemas and TS types |
-| Never run `pnpm dev` at workspace root | Use per-package scripts or workflow commands |
-| All DB null checks use `isNull()` | TypeScript enforces this — `eq(col, null)` is a runtime footgun |
-| External API failures must not crash the server | Fallback data keeps the UI usable under network failure |
+| Rule                                                      | Reason                                                          |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| OpenAPI spec is the single source of truth for all routes | Keeps client and server in sync automatically                   |
+| Orval codegen uses `mode: "single"` for Zod schemas       | Prevents naming conflicts between Zod schemas and TS types      |
+| Never run `pnpm dev` at workspace root                    | Use per-package scripts or workflow commands                    |
+| All DB null checks use `isNull()`                         | TypeScript enforces this — `eq(col, null)` is a runtime footgun |
+| External API failures must not crash the server           | Fallback data keeps the UI usable under network failure         |

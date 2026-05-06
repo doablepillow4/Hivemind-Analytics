@@ -16,8 +16,16 @@ const SYMBOL_KEYWORDS: Record<string, string[]> = {
 };
 
 const GEO_KEYWORDS = [
-  "ukraine", "russia", "taiwan", "china", "middle east", "hormuz",
-  "iran", "israel", "north korea", "geopolit",
+  "ukraine",
+  "russia",
+  "taiwan",
+  "china",
+  "middle east",
+  "hormuz",
+  "iran",
+  "israel",
+  "north korea",
+  "geopolit",
 ];
 
 interface PolymarketEventRaw {
@@ -70,7 +78,9 @@ export async function extractHiveSignal(symbol: string): Promise<HiveSignal> {
         let prices: number[] = [0.5, 0.5];
         try {
           prices = JSON.parse(market.outcomePrices ?? "[]") as number[];
-        } catch {}
+        } catch {
+        // intentional: parse failure uses default value
+      }
 
         const yesPrice = prices[0] ?? 0.5;
         const volume = parseFloat(market.volume ?? "0");
@@ -95,10 +105,8 @@ export async function extractHiveSignal(symbol: string): Promise<HiveSignal> {
       }
     }
 
-    const hiveProbability =
-      weightedTotalSum > 0 ? weightedBullishSum / weightedTotalSum : 0.5;
-    const geoPressure =
-      geoTotalSum > 0 ? geoWeightedSum / geoTotalSum : 0.1;
+    const hiveProbability = weightedTotalSum > 0 ? weightedBullishSum / weightedTotalSum : 0.5;
+    const geoPressure = geoTotalSum > 0 ? geoWeightedSum / geoTotalSum : 0.1;
 
     const liquidityScore = Math.min(1, weightedTotalSum / 5000);
     const hiveConfidence = liquidityScore * 0.7 + 0.1;
@@ -117,9 +125,18 @@ export async function extractHiveSignal(symbol: string): Promise<HiveSignal> {
 
 function generateFallbackHiveSignal(symbol: string): HiveSignal {
   const defaultProbabilities: Record<string, number> = {
-    BTC: 0.61, ETH: 0.54, SOL: 0.58, BNB: 0.52,
-    NVDA: 0.69, TSLA: 0.47, AAPL: 0.55, MSFT: 0.62,
-    AMZN: 0.57, META: 0.59, GOOGL: 0.56, SPY: 0.53,
+    BTC: 0.61,
+    ETH: 0.54,
+    SOL: 0.58,
+    BNB: 0.52,
+    NVDA: 0.69,
+    TSLA: 0.47,
+    AAPL: 0.55,
+    MSFT: 0.62,
+    AMZN: 0.57,
+    META: 0.59,
+    GOOGL: 0.56,
+    SPY: 0.53,
   };
   return {
     probability: defaultProbabilities[symbol] ?? 0.52,

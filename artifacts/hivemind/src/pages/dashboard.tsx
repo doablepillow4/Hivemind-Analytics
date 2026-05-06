@@ -10,10 +10,25 @@ import {
   getGetPredictionsSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Activity, Target, TrendingUp, TrendingDown, Zap, CheckCircle2, XCircle, Clock } from "lucide-react";
+import {
+  Activity,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  CheckCircle2,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TickerCombobox } from "@/components/ticker-combobox";
 import { useAppStore } from "@/store/app-store";
 
@@ -82,7 +97,12 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="text-[10px] font-mono text-muted-foreground/50 text-right leading-relaxed">
-          {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}<br />
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}
+          <br />
           {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>
@@ -93,7 +113,11 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Model Accuracy</div>
             <div className="stat-number text-white mb-1">
-              {summary ? `${(summary.accuracy * 100).toFixed(1)}%` : <span className="text-white/20">——</span>}
+              {summary ? (
+                `${(summary.accuracy * 100).toFixed(1)}%`
+              ) : (
+                <span className="text-white/20">——</span>
+              )}
             </div>
             <div className="text-[10px] font-mono text-primary/80">
               {summary?.totalPredictions || 0} predictions
@@ -105,12 +129,19 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Avg Confidence</div>
             <div className="stat-number text-white mb-2">
-              {summary ? `${(summary.averageConfidence * 100).toFixed(1)}%` : <span className="text-white/20">——</span>}
+              {summary ? (
+                `${(summary.averageConfidence * 100).toFixed(1)}%`
+              ) : (
+                <span className="text-white/20">——</span>
+              )}
             </div>
             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-700"
-                style={{ width: `${summary ? summary.averageConfidence * 100 : 0}%`, boxShadow: "0 0 8px rgba(0,212,255,0.6)" }}
+                style={{
+                  width: `${summary ? summary.averageConfidence * 100 : 0}%`,
+                  boxShadow: "0 0 8px rgba(0,212,255,0.6)",
+                }}
               />
             </div>
           </CardContent>
@@ -120,13 +151,21 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">30-Day Accuracy</div>
             <div className="stat-number text-white mb-1">
-              {summary ? `${(summary.recentAccuracy * 100).toFixed(1)}%` : <span className="text-white/20">——</span>}
+              {summary ? (
+                `${(summary.recentAccuracy * 100).toFixed(1)}%`
+              ) : (
+                <span className="text-white/20">——</span>
+              )}
             </div>
             {summary && (
-              <div className={`text-[10px] font-mono flex items-center gap-0.5 ${summary.improvementTrend > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {summary.improvementTrend > 0
-                  ? <TrendingUp className="w-3 h-3" />
-                  : <TrendingDown className="w-3 h-3" />}
+              <div
+                className={`text-[10px] font-mono flex items-center gap-0.5 ${summary.improvementTrend > 0 ? "text-emerald-400" : "text-red-400"}`}
+              >
+                {summary.improvementTrend > 0 ? (
+                  <TrendingUp className="w-3 h-3" />
+                ) : (
+                  <TrendingDown className="w-3 h-3" />
+                )}
                 {Math.abs(summary.improvementTrend * 100).toFixed(1)}% vs prior
               </div>
             )}
@@ -137,7 +176,11 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Resolved</div>
             <div className="stat-number text-white mb-1">
-              {summary ? `${summary.correctPredictions}/${summary.totalPredictions}` : <span className="text-white/20">——</span>}
+              {summary ? (
+                `${summary.correctPredictions}/${summary.totalPredictions}`
+              ) : (
+                <span className="text-white/20">——</span>
+              )}
             </div>
             <div className="text-[10px] font-mono text-muted-foreground">Correct / Total</div>
           </CardContent>
@@ -150,36 +193,55 @@ export default function Dashboard() {
         <div className="relative space-y-3">
           <div className="flex items-center gap-2">
             <Zap className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[11px] font-semibold text-white tracking-wide">Generate Prediction</span>
+            <span className="text-[11px] font-semibold text-white tracking-wide">
+              Generate Prediction
+            </span>
           </div>
 
           {/* Autocomplete search */}
           <TickerCombobox
             value={selectedSymbol}
             onChange={handleSymbolChange}
-            options={priceList.map((p) => ({ symbol: p.symbol, name: p.name, price: p.price, type: p.type }))}
+            options={priceList.map((p) => ({
+              symbol: p.symbol,
+              name: p.name,
+              price: p.price,
+              type: p.type,
+            }))}
             placeholder="Search ticker or company name…"
           />
 
           {/* Selected asset preview */}
-          {selectedSymbol && (() => {
-            const asset = priceList.find(p => p.symbol === selectedSymbol);
-            if (!asset) return null;
-            return (
-              <div className="flex items-center justify-between bg-black/20 border border-white/[0.06] rounded-lg px-3 py-2">
-                <div>
-                  <span className="text-[11px] font-mono font-600 text-white">{asset.symbol}</span>
-                  <span className="text-[10px] text-muted-foreground ml-2">{asset.name}</span>
+          {selectedSymbol &&
+            (() => {
+              const asset = priceList.find((p) => p.symbol === selectedSymbol);
+              if (!asset) return null;
+              return (
+                <div className="flex items-center justify-between bg-black/20 border border-white/[0.06] rounded-lg px-3 py-2">
+                  <div>
+                    <span className="text-[11px] font-mono font-600 text-white">
+                      {asset.symbol}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground ml-2">{asset.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-mono text-white">
+                      $
+                      {asset.price.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span
+                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${asset.changePercent >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}
+                    >
+                      {asset.changePercent >= 0 ? "+" : ""}
+                      {asset.changePercent.toFixed(2)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] font-mono text-white">${asset.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${asset.changePercent >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}>
-                    {asset.changePercent >= 0 ? "+" : ""}{asset.changePercent.toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           <div className="flex gap-2">
             <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
@@ -187,13 +249,27 @@ export default function Dashboard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="15m" className="font-mono">15 Min</SelectItem>
-                <SelectItem value="30m" className="font-mono">30 Min</SelectItem>
-                <SelectItem value="1h" className="font-mono">1 Hour</SelectItem>
-                <SelectItem value="6h" className="font-mono">6 Hours</SelectItem>
-                <SelectItem value="12h" className="font-mono">12 Hours</SelectItem>
-                <SelectItem value="1d" className="font-mono">1 Day</SelectItem>
-                <SelectItem value="7d" className="font-mono">1 Week</SelectItem>
+                <SelectItem value="15m" className="font-mono">
+                  15 Min
+                </SelectItem>
+                <SelectItem value="30m" className="font-mono">
+                  30 Min
+                </SelectItem>
+                <SelectItem value="1h" className="font-mono">
+                  1 Hour
+                </SelectItem>
+                <SelectItem value="6h" className="font-mono">
+                  6 Hours
+                </SelectItem>
+                <SelectItem value="12h" className="font-mono">
+                  12 Hours
+                </SelectItem>
+                <SelectItem value="1d" className="font-mono">
+                  1 Day
+                </SelectItem>
+                <SelectItem value="7d" className="font-mono">
+                  1 Week
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -208,24 +284,42 @@ export default function Dashboard() {
 
           {/* Inline result of just-generated prediction */}
           {latestPrediction && (
-            <div className={`mt-1 rounded-lg border p-3 ${
-              latestPrediction.direction === "bullish" ? "border-emerald-500/25 bg-emerald-500/5" :
-              latestPrediction.direction === "bearish" ? "border-red-500/25 bg-red-500/5" :
-              "border-amber-500/25 bg-amber-500/5"
-            }`}>
+            <div
+              className={`mt-1 rounded-lg border p-3 ${
+                latestPrediction.direction === "bullish"
+                  ? "border-emerald-500/25 bg-emerald-500/5"
+                  : latestPrediction.direction === "bearish"
+                    ? "border-red-500/25 bg-red-500/5"
+                    : "border-amber-500/25 bg-amber-500/5"
+              }`}
+            >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-mono font-600 text-white">{latestPrediction.symbol} · {latestPrediction.timeframe}</span>
-                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold uppercase tracking-widest ${
-                  latestPrediction.direction === "bullish" ? "bg-emerald-500/15 text-emerald-400" :
-                  latestPrediction.direction === "bearish" ? "bg-red-500/15 text-red-400" :
-                  "bg-amber-500/15 text-amber-400"
-                }`}>
+                <span className="text-[11px] font-mono font-600 text-white">
+                  {latestPrediction.symbol} · {latestPrediction.timeframe}
+                </span>
+                <span
+                  className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-semibold uppercase tracking-widest ${
+                    latestPrediction.direction === "bullish"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : latestPrediction.direction === "bearish"
+                        ? "bg-red-500/15 text-red-400"
+                        : "bg-amber-500/15 text-amber-400"
+                  }`}
+                >
                   {latestPrediction.direction}
                 </span>
               </div>
               <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
-                <span>Target <span className="text-white">${latestPrediction.targetPrice.toFixed(2)}</span></span>
-                <span>Conf <span className="text-primary">{(latestPrediction.confidence * 100).toFixed(0)}%</span></span>
+                <span>
+                  Target{" "}
+                  <span className="text-white">${latestPrediction.targetPrice.toFixed(2)}</span>
+                </span>
+                <span>
+                  Conf{" "}
+                  <span className="text-primary">
+                    {(latestPrediction.confidence * 100).toFixed(0)}%
+                  </span>
+                </span>
               </div>
             </div>
           )}
@@ -235,14 +329,21 @@ export default function Dashboard() {
       {/* Live Markets */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-[13px] font-700 text-white tracking-tight">Live Markets</h2>
-          <div className="text-[10px] font-mono text-muted-foreground">{priceList.length} assets</div>
+          <h2 className="font-display text-[13px] font-700 text-white tracking-tight">
+            Live Markets
+          </h2>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {priceList.length} assets
+          </div>
         </div>
 
         {loadingPrices ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse" />
+              <div
+                key={i}
+                className="h-28 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse"
+              />
             ))}
           </div>
         ) : (
@@ -256,19 +357,35 @@ export default function Dashboard() {
                 <CardContent className="p-3.5">
                   <div className="flex justify-between items-start mb-1.5">
                     <div>
-                      <div className="font-display font-700 text-[13px] text-white leading-tight">{price.symbol}</div>
-                      <div className="text-[9px] font-mono text-muted-foreground/70 truncate max-w-[72px] mt-0.5">{price.name}</div>
+                      <div className="font-display font-700 text-[13px] text-white leading-tight">
+                        {price.symbol}
+                      </div>
+                      <div className="text-[9px] font-mono text-muted-foreground/70 truncate max-w-[72px] mt-0.5">
+                        {price.name}
+                      </div>
                     </div>
-                    <div className={`text-[10px] font-mono font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded ${
-                      price.changePercent >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-                    }`}>
-                      {price.changePercent >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                    <div
+                      className={`text-[10px] font-mono font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded ${
+                        price.changePercent >= 0
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-red-500/10 text-red-400"
+                      }`}
+                    >
+                      {price.changePercent >= 0 ? (
+                        <TrendingUp className="w-2.5 h-2.5" />
+                      ) : (
+                        <TrendingDown className="w-2.5 h-2.5" />
+                      )}
                       {Math.abs(price.changePercent).toFixed(2)}%
                     </div>
                   </div>
 
                   <div className="text-[13px] font-mono font-600 text-white mb-2">
-                    ${price.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    $
+                    {price.price.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
 
                   <div className="h-9 w-full">
@@ -296,20 +413,29 @@ export default function Dashboard() {
       {/* Predictions */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-[13px] font-700 text-white tracking-tight">Latest Intelligence</h2>
-          <div className="text-[10px] font-mono text-muted-foreground">{predictionList.length} signals</div>
+          <h2 className="font-display text-[13px] font-700 text-white tracking-tight">
+            Latest Intelligence
+          </h2>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {predictionList.length} signals
+          </div>
         </div>
 
         {loadingPredictions ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
-              <div key={i} className="h-32 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse" />
+              <div
+                key={i}
+                className="h-32 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse"
+              />
             ))}
           </div>
         ) : predictionList.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-white/10 rounded-xl">
             <Target className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-[12px] text-muted-foreground">No predictions yet. Search for an asset above.</p>
+            <p className="text-[12px] text-muted-foreground">
+              No predictions yet. Search for an asset above.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -320,27 +446,42 @@ export default function Dashboard() {
               >
                 <div
                   className={`absolute top-0 left-0 w-1 h-full ${
-                    pred.direction === "bullish" ? "bg-emerald-500" :
-                    pred.direction === "bearish" ? "bg-red-500" : "bg-amber-500"
+                    pred.direction === "bullish"
+                      ? "bg-emerald-500"
+                      : pred.direction === "bearish"
+                        ? "bg-red-500"
+                        : "bg-amber-500"
                   }`}
                 />
                 <div className="p-4 pl-5">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-display font-700 text-[14px] text-white">{pred.symbol}</span>
+                      <span className="font-display font-700 text-[14px] text-white">
+                        {pred.symbol}
+                      </span>
                       <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground uppercase tracking-widest">
                         {pred.timeframe}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {pred.outcome === "correct" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                      {pred.outcome === "incorrect" && <XCircle className="w-3.5 h-3.5 text-red-400" />}
-                      {pred.outcome === "pending" && <Clock className="w-3.5 h-3.5 text-amber-400/60" />}
-                      <div className={`text-[9px] font-mono px-2 py-1 rounded-full font-semibold tracking-widest uppercase ${
-                        pred.direction === "bullish" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                        pred.direction === "bearish" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                        "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      }`}>
+                      {pred.outcome === "correct" && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      )}
+                      {pred.outcome === "incorrect" && (
+                        <XCircle className="w-3.5 h-3.5 text-red-400" />
+                      )}
+                      {pred.outcome === "pending" && (
+                        <Clock className="w-3.5 h-3.5 text-amber-400/60" />
+                      )}
+                      <div
+                        className={`text-[9px] font-mono px-2 py-1 rounded-full font-semibold tracking-widest uppercase ${
+                          pred.direction === "bullish"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : pred.direction === "bearish"
+                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        }`}
+                      >
                         {pred.direction}
                       </div>
                     </div>
@@ -350,18 +491,27 @@ export default function Dashboard() {
                     <div>
                       <div className="data-label mb-1">Target Price</div>
                       <div className="text-[13px] font-mono font-600 text-white">
-                        ${pred.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        $
+                        {pred.targetPrice.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <span className="data-label">Confidence</span>
-                        <span className="text-[10px] font-mono text-primary">{(pred.confidence * 100).toFixed(0)}%</span>
+                        <span className="text-[10px] font-mono text-primary">
+                          {(pred.confidence * 100).toFixed(0)}%
+                        </span>
                       </div>
                       <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary rounded-full"
-                          style={{ width: `${pred.confidence * 100}%`, boxShadow: "0 0 6px rgba(0,212,255,0.5)" }}
+                          style={{
+                            width: `${pred.confidence * 100}%`,
+                            boxShadow: "0 0 6px rgba(0,212,255,0.5)",
+                          }}
                         />
                       </div>
                     </div>
@@ -373,7 +523,9 @@ export default function Dashboard() {
                       {pred.signals.slice(0, 3).map((sig, i) => (
                         <div key={i} className="flex justify-between items-center">
                           <span className="text-[11px] text-white/60">{sig.name}</span>
-                          <span className={`text-[11px] font-mono ${sig.bullish ? "text-emerald-400" : "text-red-400"}`}>
+                          <span
+                            className={`text-[11px] font-mono ${sig.bullish ? "text-emerald-400" : "text-red-400"}`}
+                          >
                             {sig.value.toFixed(2)}
                           </span>
                         </div>

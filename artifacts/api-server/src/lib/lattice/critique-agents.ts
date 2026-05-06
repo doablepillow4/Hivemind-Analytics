@@ -1,4 +1,11 @@
-import type { BeliefToken, DebateRound, Direction, HiveSignal, NewsContext, RegimeContext } from "./types";
+import type {
+  BeliefToken,
+  DebateRound,
+  Direction,
+  HiveSignal,
+  NewsContext,
+  RegimeContext,
+} from "./types";
 import { nanoid } from "nanoid";
 
 function clamp(v: number, lo = 0, hi = 1) {
@@ -23,10 +30,9 @@ export function runDevilsAdvocate(
   regime: RegimeContext,
   parentIds: string[],
   symbol = "",
-  timeframe = "1d"
+  timeframe = "1d",
 ): DebateResult {
-  const avgProb =
-    hypothesisTokens.reduce((s, t) => s + t.probability, 0) / hypothesisTokens.length;
+  const avgProb = hypothesisTokens.reduce((s, t) => s + t.probability, 0) / hypothesisTokens.length;
   const consensusStrength = Math.abs(avgProb - 0.5) * 2;
 
   let adjustment = 0;
@@ -35,35 +41,35 @@ export function runDevilsAdvocate(
   if (consensusStrength > 0.6) {
     adjustment -= 0.08;
     challenges.push(
-      `Strong consensus (${(consensusStrength * 100).toFixed(0)}% agreement) triggers overconfidence penalty — markets rarely reward obvious bets`
+      `Strong consensus (${(consensusStrength * 100).toFixed(0)}% agreement) triggers overconfidence penalty — markets rarely reward obvious bets`,
     );
   }
 
   if (avgProb > 0.55 && features.rsi > 68) {
     adjustment -= 0.07;
     challenges.push(
-      `Bullish consensus coincides with RSI ${features.rsi.toFixed(1)} — overbought conditions historically mean-revert within 5-7 trading days`
+      `Bullish consensus coincides with RSI ${features.rsi.toFixed(1)} — overbought conditions historically mean-revert within 5-7 trading days`,
     );
   }
 
   if (avgProb < 0.45 && features.rsi < 32) {
     adjustment -= 0.07;
     challenges.push(
-      `Bearish consensus with RSI ${features.rsi.toFixed(1)} — capitulation events often mark short-term lows; contrarian risk is elevated`
+      `Bearish consensus with RSI ${features.rsi.toFixed(1)} — capitulation events often mark short-term lows; contrarian risk is elevated`,
     );
   }
 
   if (regime.regime === "crisis") {
     adjustment -= 0.1;
     challenges.push(
-      "Crisis regime: historical correlation breakdown makes technical signals unreliable — applying additional confidence haircut"
+      "Crisis regime: historical correlation breakdown makes technical signals unreliable — applying additional confidence haircut",
     );
   }
 
   if (features.momentum5d > 4 && avgProb > 0.55) {
     adjustment -= 0.05;
     challenges.push(
-      `5-day momentum of +${features.momentum5d.toFixed(1)}% with bullish consensus may represent late-cycle chasing`
+      `5-day momentum of +${features.momentum5d.toFixed(1)}% with bullish consensus may represent late-cycle chasing`,
     );
   }
 
@@ -120,7 +126,7 @@ export function runTailRiskAgent(
   parentIds: string[],
   symbol = "",
   timeframe = "1d",
-  news?: NewsContext
+  news?: NewsContext,
 ): DebateResult {
   let adjustment = 0;
   const challenges: string[] = [];
@@ -129,7 +135,7 @@ export function runTailRiskAgent(
     const geoAdj = -(hive.geoPressure - 0.35) * 0.25;
     adjustment += geoAdj;
     challenges.push(
-      `Elevated geopolitical risk (GPR index: ${(hive.geoPressure * 100).toFixed(0)}%) — Polymarket prediction markets signal tail-risk scenarios. Hormuz/Taiwan causal chains inject supply-shock probability.`
+      `Elevated geopolitical risk (GPR index: ${(hive.geoPressure * 100).toFixed(0)}%) — Polymarket prediction markets signal tail-risk scenarios. Hormuz/Taiwan causal chains inject supply-shock probability.`,
     );
   }
 
@@ -137,39 +143,40 @@ export function runTailRiskAgent(
     const crisisAdj = -(regime.regimeScore * 0.1);
     adjustment += crisisAdj;
     challenges.push(
-      `Crisis-regime fat-tails: kurtosis of return distribution is elevated. Standard deviation understates true downside risk by an estimated ${(regime.regimeScore * 30).toFixed(0)}%.`
+      `Crisis-regime fat-tails: kurtosis of return distribution is elevated. Standard deviation understates true downside risk by an estimated ${(regime.regimeScore * 30).toFixed(0)}%.`,
     );
   }
 
   if (regime.volatility > 0.35) {
     adjustment -= 0.04;
     challenges.push(
-      `Volatility spike alert: ${(regime.volatility * 100).toFixed(1)}% annualized vol exceeds 35% threshold. VaR (95%) is expanded by ~${(regime.volatility * 120).toFixed(0)} bps versus calm baseline.`
+      `Volatility spike alert: ${(regime.volatility * 100).toFixed(1)}% annualized vol exceeds 35% threshold. VaR (95%) is expanded by ~${(regime.volatility * 120).toFixed(0)} bps versus calm baseline.`,
     );
   }
 
   if (news && news.weight > 0) {
     const newsAdj = news.sentiment * news.weight * 0.12;
     adjustment += newsAdj;
-    const direction = news.sentiment < -0.05 ? "bearish" : news.sentiment > 0.05 ? "bullish" : "neutral";
+    const direction =
+      news.sentiment < -0.05 ? "bearish" : news.sentiment > 0.05 ? "bullish" : "neutral";
     const breakingTag = news.breakingAlert ? " [BREAKING]" : "";
     challenges.push(
       `Live news sentiment: ${direction.toUpperCase()}${breakingTag} (score ${news.sentiment > 0 ? "+" : ""}${(news.sentiment * 100).toFixed(0)}/100, weight ${(news.weight * 100).toFixed(0)}%). ` +
-      (news.headlines.length > 0
-        ? `Top headline: "${news.headlines[0]}" — net news adjustment: ${newsAdj >= 0 ? "+" : ""}${(newsAdj * 100).toFixed(1)}%.`
-        : `No directly relevant headlines — macro/geo baseline applied.`)
+        (news.headlines.length > 0
+          ? `Top headline: "${news.headlines[0]}" — net news adjustment: ${newsAdj >= 0 ? "+" : ""}${(newsAdj * 100).toFixed(1)}%.`
+          : `No directly relevant headlines — macro/geo baseline applied.`),
     );
     if (news.breakingAlert) {
       adjustment -= 0.03;
       challenges.push(
-        `Breaking news alert: recent developments within the last 2 hours are introducing elevated event risk. Short-horizon confidence haircut applied.`
+        `Breaking news alert: recent developments within the last 2 hours are introducing elevated event risk. Short-horizon confidence haircut applied.`,
       );
     }
   }
 
   if (challenges.length === 0) {
     challenges.push(
-      `No significant tail risks identified. Geopolitical pressure ${(hive.geoPressure * 100).toFixed(0)}% and volatility ${(regime.volatility * 100).toFixed(1)}% are within normal bounds.`
+      `No significant tail risks identified. Geopolitical pressure ${(hive.geoPressure * 100).toFixed(0)}% and volatility ${(regime.volatility * 100).toFixed(1)}% are within normal bounds.`,
     );
   }
 
@@ -184,7 +191,12 @@ export function runTailRiskAgent(
   ];
 
   if (news?.headlines && news.headlines.length > 1) {
-    rationale.push(`Additional live headlines: ${news.headlines.slice(1).map((h) => `"${h}"`).join(" | ")}`);
+    rationale.push(
+      `Additional live headlines: ${news.headlines
+        .slice(1)
+        .map((h) => `"${h}"`)
+        .join(" | ")}`,
+    );
   }
 
   const roundToken: BeliefToken = {
