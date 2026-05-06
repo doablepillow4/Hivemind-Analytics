@@ -21,7 +21,9 @@ export function runDevilsAdvocate(
   hypothesisTokens: BeliefToken[],
   features: { rsi: number; macdHistogram: number; bollingerPercentB: number; momentum5d: number },
   regime: RegimeContext,
-  parentIds: string[]
+  parentIds: string[],
+  symbol = "",
+  timeframe = "1d"
 ): DebateResult {
   const avgProb =
     hypothesisTokens.reduce((s, t) => s + t.probability, 0) / hypothesisTokens.length;
@@ -68,8 +70,12 @@ export function runDevilsAdvocate(
   const finalChallenge =
     challenges.length > 0
       ? challenges.join(". ")
-      : "No strong counter-arguments found — consensus appears supported.";
+      : `No strong counter-arguments found for ${symbol} at current levels — consensus appears well-supported.`;
   const accepted = adjustment < -0.03;
+
+  const tfNote = ["15m", "30m", "1h"].includes(timeframe)
+    ? `${timeframe} horizon: short-duration consensus breaks down rapidly — even a minor catalyst can invalidate this call`
+    : `${timeframe} horizon: consensus has had time to absorb available information`;
 
   const adjustedProb = clamp(avgProb + adjustment);
   const roundToken: BeliefToken = {
@@ -80,10 +86,10 @@ export function runDevilsAdvocate(
     probability: parseFloat(adjustedProb.toFixed(4)),
     confidence: clamp(0.55 + Math.abs(adjustedProb - 0.5)),
     rationale: [
-      "Role: consensus skeptic",
-      `Devil's Advocate review of ${hypothesisTokens.length} hypothesis tokens`,
+      `Role: consensus skeptic · ${symbol} ${timeframe}`,
+      `Devil's Advocate challenge of ${hypothesisTokens.length} hypothesis agents — net probability adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`,
       finalChallenge,
-      `Confidence adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`,
+      tfNote,
     ],
     shapHive: 0,
     shapAi: 1,
@@ -111,7 +117,9 @@ export function runTailRiskAgent(
   currentProb: number,
   hive: HiveSignal,
   regime: RegimeContext,
-  parentIds: string[]
+  parentIds: string[],
+  symbol = "",
+  timeframe = "1d"
 ): DebateResult {
   let adjustment = 0;
   const challenges: string[] = [];
@@ -155,7 +163,12 @@ export function runTailRiskAgent(
     hypothesis: adjustedProb > 0.54 ? "bullish" : adjustedProb < 0.46 ? "bearish" : "neutral",
     probability: parseFloat(adjustedProb.toFixed(4)),
     confidence: clamp(0.5 + Math.abs(adjustedProb - 0.5) * 0.8),
-    rationale: ["Role: tail-risk and geopolitical analyst", "Tail Risk & Geopolitical Assessment", ...challenges, `Net confidence adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}%`],
+    rationale: [
+      `Role: tail-risk & geopolitical analyst · ${symbol} ${timeframe}`,
+      `Tail Risk Assessment — scanning ${symbol} for fat-tail exposures over ${timeframe} horizon`,
+      ...challenges,
+      `Net probability adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}% (${accepted ? "tail risks accepted into model" : "tail risks within tolerance"})`,
+    ],
     shapHive: hive.geoPressure,
     shapAi: 0,
     shapGeo: 1,

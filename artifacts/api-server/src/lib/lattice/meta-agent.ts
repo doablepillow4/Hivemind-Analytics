@@ -43,7 +43,7 @@ export function runMetaAgent(
     probability > 0.54 ? "bullish" : probability < 0.46 ? "bearish" : "neutral";
   const confidence = synthesisToken.confidence;
 
-  const days = timeframe === "1d" ? 1 : timeframe === "7d" ? 7 : 30;
+  const days = { "15m": 1/96, "30m": 1/48, "1h": 1/24, "6h": 0.25, "12h": 0.5, "1d": 1, "7d": 7 }[timeframe] ?? 30;
   const expectedMovePct = (regime.volatility * Math.sqrt(days / 252) * (direction === "neutral" ? 0 : 1));
   const targetPrice =
     direction === "bullish"

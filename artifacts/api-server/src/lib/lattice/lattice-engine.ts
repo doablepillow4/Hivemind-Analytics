@@ -159,10 +159,10 @@ export async function runLattice(
     rationale: [`Polymarket liquidity-weighted signal: ${(hive.probability * 100).toFixed(1)}% bullish`, `Liquidity score: ${hive.liquidityScore.toFixed(2)}`],
     shapHive: 1, shapAi: 0, shapGeo: hive.geoPressure, liquidityScore: hive.liquidityScore, parentIds: [] };
 
-  const momToken = momentumAgent(features, regime, [hiveToken.id]);
-  const meanToken = meanReversionAgent(features, regime, [hiveToken.id]);
-  const volToken = volRegimeAgent(features, regime, [hiveToken.id]);
-  const hiveWisToken = hiveWisdomAgent(hive, [hiveToken.id]);
+  const momToken = momentumAgent(features, regime, [hiveToken.id], symbol, timeframe);
+  const meanToken = meanReversionAgent(features, regime, [hiveToken.id], symbol, timeframe);
+  const volToken = volRegimeAgent(features, regime, [hiveToken.id], symbol, timeframe);
+  const hiveWisToken = hiveWisdomAgent(hive, [hiveToken.id], symbol, timeframe);
 
   const hypothesisTokens = [momToken, meanToken, volToken, hiveWisToken];
 
@@ -174,14 +174,18 @@ export async function runLattice(
     hypothesisTokens,
     features,
     regime,
-    hypothesisTokens.map((t) => t.id)
+    hypothesisTokens.map((t) => t.id),
+    symbol,
+    timeframe
   );
 
   const tailResult = runTailRiskAgent(
     devilResult.adjustedProb,
     hive,
     regime,
-    devilResult.tokens.map((t) => t.id)
+    devilResult.tokens.map((t) => t.id),
+    symbol,
+    timeframe
   );
 
   const agentReputations = await getAgentReputations();

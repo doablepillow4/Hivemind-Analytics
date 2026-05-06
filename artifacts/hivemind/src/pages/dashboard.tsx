@@ -40,7 +40,7 @@ export default function Dashboard() {
   const { selectedAsset, setSelectedAsset, setLastPredictionSymbol } = useAppStore();
 
   const [selectedSymbol, setSelectedSymbol] = useState<string>(selectedAsset?.symbol ?? "");
-  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("1w");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("1d");
 
   const priceList = Array.isArray(prices) ? prices : [];
   const predictionList = Array.isArray(predictions) ? predictions : [];
@@ -187,9 +187,13 @@ export default function Dashboard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="15m" className="font-mono">15 Min</SelectItem>
+                <SelectItem value="30m" className="font-mono">30 Min</SelectItem>
+                <SelectItem value="1h" className="font-mono">1 Hour</SelectItem>
+                <SelectItem value="6h" className="font-mono">6 Hours</SelectItem>
+                <SelectItem value="12h" className="font-mono">12 Hours</SelectItem>
                 <SelectItem value="1d" className="font-mono">1 Day</SelectItem>
-                <SelectItem value="1w" className="font-mono">1 Week</SelectItem>
-                <SelectItem value="1m" className="font-mono">1 Month</SelectItem>
+                <SelectItem value="7d" className="font-mono">1 Week</SelectItem>
               </SelectContent>
             </Select>
             <Button
