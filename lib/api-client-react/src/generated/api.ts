@@ -21,6 +21,7 @@ import type {
   CreatePredictionBody,
   GetMarketHistoryParams,
   GetMarketRegimeParams,
+  GetNewsParams,
   GetPolymarketMarketsParams,
   HealthStatus,
   LatticeResult,
@@ -28,6 +29,7 @@ import type {
   MarketPrice,
   MonteCarloBody,
   MonteCarloResult,
+  NewsItem,
   PolymarketMarket,
   Prediction,
   PredictionSummary,
@@ -721,6 +723,92 @@ export function useGetPolymarketMarkets<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPolymarketMarketsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get latest geopolitical and financial news
+ */
+export const getGetNewsUrl = (params?: GetNewsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/news?${stringifiedParams}`
+    : `/api/news`;
+};
+
+export const getNews = async (
+  params?: GetNewsParams,
+  options?: RequestInit,
+): Promise<NewsItem[]> => {
+  return customFetch<NewsItem[]>(getGetNewsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNewsQueryKey = (params?: GetNewsParams) => {
+  return [`/api/news`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetNewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetNewsParams,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetNewsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getNews>>> = ({
+    signal,
+  }) => getNews(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNews>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNews>>
+>;
+export type GetNewsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get latest geopolitical and financial news
+ */
+
+export function useGetNews<
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetNewsParams,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNewsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

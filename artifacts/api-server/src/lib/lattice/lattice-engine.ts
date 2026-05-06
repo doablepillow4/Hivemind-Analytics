@@ -135,8 +135,11 @@ export async function runLattice(
 
   const regime = detectRegime(closes);
 
-  const [hive] = await Promise.all([
+  const { getNewsContextForSymbol } = await import("../news");
+
+  const [hive, newsContext] = await Promise.all([
     extractHiveSignal(symbol),
+    getNewsContextForSymbol(symbol).catch(() => ({ sentiment: 0, weight: 0, headlines: [], breakingAlert: false })),
   ]);
 
   const features: TechnicalFeatures = {
@@ -185,7 +188,8 @@ export async function runLattice(
     regime,
     devilResult.tokens.map((t) => t.id),
     symbol,
-    timeframe
+    timeframe,
+    newsContext
   );
 
   const agentReputations = await getAgentReputations();

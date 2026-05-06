@@ -1,4 +1,4 @@
-import type { BeliefToken, DebateRound, Direction, HiveSignal, RegimeContext } from "./types";
+import type { BeliefToken, DebateRound, Direction, HiveSignal, NewsContext, RegimeContext } from "./types";
 import { nanoid } from "nanoid";
 
 function clamp(v: number, lo = 0, hi = 1) {
@@ -119,7 +119,8 @@ export function runTailRiskAgent(
   regime: RegimeContext,
   parentIds: string[],
   symbol = "",
-  timeframe = "1d"
+  timeframe = "1d",
+  news?: NewsContext
 ): DebateResult {
   let adjustment = 0;
   const challenges: string[] = [];
@@ -147,6 +148,25 @@ export function runTailRiskAgent(
     );
   }
 
+  if (news && news.weight > 0) {
+    const newsAdj = news.sentiment * news.weight * 0.12;
+    adjustment += newsAdj;
+    const direction = news.sentiment < -0.05 ? "bearish" : news.sentiment > 0.05 ? "bullish" : "neutral";
+    const breakingTag = news.breakingAlert ? " [BREAKING]" : "";
+    challenges.push(
+      `Live news sentiment: ${direction.toUpperCase()}${breakingTag} (score ${news.sentiment > 0 ? "+" : ""}${(news.sentiment * 100).toFixed(0)}/100, weight ${(news.weight * 100).toFixed(0)}%). ` +
+      (news.headlines.length > 0
+        ? `Top headline: "${news.headlines[0]}" — net news adjustment: ${newsAdj >= 0 ? "+" : ""}${(newsAdj * 100).toFixed(1)}%.`
+        : `No directly relevant headlines — macro/geo baseline applied.`)
+    );
+    if (news.breakingAlert) {
+      adjustment -= 0.03;
+      challenges.push(
+        `Breaking news alert: recent developments within the last 2 hours are introducing elevated event risk. Short-horizon confidence haircut applied.`
+      );
+    }
+  }
+
   if (challenges.length === 0) {
     challenges.push(
       `No significant tail risks identified. Geopolitical pressure ${(hive.geoPressure * 100).toFixed(0)}% and volatility ${(regime.volatility * 100).toFixed(1)}% are within normal bounds.`
@@ -156,6 +176,17 @@ export function runTailRiskAgent(
   const accepted = adjustment < -0.02;
   const adjustedProb = clamp(currentProb + adjustment);
 
+  const rationale: string[] = [
+    `Role: tail-risk & geopolitical analyst · ${symbol} ${timeframe}`,
+    `Tail Risk Assessment — scanning ${symbol} for fat-tail exposures over ${timeframe} horizon`,
+    ...challenges,
+    `Net probability adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}% (${accepted ? "tail risks accepted into model" : "tail risks within tolerance"})`,
+  ];
+
+  if (news?.headlines && news.headlines.length > 1) {
+    rationale.push(`Additional live headlines: ${news.headlines.slice(1).map((h) => `"${h}"`).join(" | ")}`);
+  }
+
   const roundToken: BeliefToken = {
     id: nanoid(8),
     agentType: "critique_tailrisk",
@@ -163,12 +194,7 @@ export function runTailRiskAgent(
     hypothesis: adjustedProb > 0.54 ? "bullish" : adjustedProb < 0.46 ? "bearish" : "neutral",
     probability: parseFloat(adjustedProb.toFixed(4)),
     confidence: clamp(0.5 + Math.abs(adjustedProb - 0.5) * 0.8),
-    rationale: [
-      `Role: tail-risk & geopolitical analyst · ${symbol} ${timeframe}`,
-      `Tail Risk Assessment — scanning ${symbol} for fat-tail exposures over ${timeframe} horizon`,
-      ...challenges,
-      `Net probability adjustment: ${adjustment >= 0 ? "+" : ""}${(adjustment * 100).toFixed(1)}% (${accepted ? "tail risks accepted into model" : "tail risks within tolerance"})`,
-    ],
+    rationale,
     shapHive: hive.geoPressure,
     shapAi: 0,
     shapGeo: 1,

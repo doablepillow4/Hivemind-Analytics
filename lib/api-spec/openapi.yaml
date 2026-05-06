@@ -20,6 +20,8 @@ tags:
     description: Polymarket prediction markets
   - name: lattice
     description: Hivemind Predictive Lattice (HPL-HPA v2)
+  - name: news
+    description: Geopolitical and financial news feed
 
 paths:
   /healthz:
@@ -158,6 +160,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PolymarketMarket"
+
+  /news:
+    get:
+      operationId: getNews
+      tags: [news]
+      summary: Get latest geopolitical and financial news
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: News items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsItem"
 
   /lattice/run:
     post:
@@ -574,6 +597,30 @@ components:
         correctRuns:
           type: integer
       required: [agentId, agentType, reputation, brierScore, totalRuns, correctRuns]
+
+    NewsItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+        source:
+          type: string
+        publishedAt:
+          type: string
+        sentiment:
+          type: string
+          enum: [bullish, bearish, neutral]
+        category:
+          type: string
+        isBreaking:
+          type: boolean
+      required: [id, title, description, url, source, publishedAt, sentiment, category, isBreaking]
 
     RegimeStatus:
       type: object

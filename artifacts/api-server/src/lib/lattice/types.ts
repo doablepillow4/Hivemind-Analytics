@@ -103,3 +103,10 @@ export interface TechnicalFeatures {
   momentum5d: number;
   volatility: number;
 }
+
+export interface NewsContext {
+  sentiment: number;
+  weight: number;
+  headlines: string[];
+  breakingAlert: boolean;
+}

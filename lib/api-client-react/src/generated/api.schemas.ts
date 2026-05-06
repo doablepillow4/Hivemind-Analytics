@@ -233,6 +233,27 @@ export interface AgentState {
   correctRuns: number;
 }
 
+export type NewsItemSentiment =
+  (typeof NewsItemSentiment)[keyof typeof NewsItemSentiment];
+
+export const NewsItemSentiment = {
+  bullish: "bullish",
+  bearish: "bearish",
+  neutral: "neutral",
+} as const;
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  sentiment: NewsItemSentiment;
+  category: string;
+  isBreaking: boolean;
+}
+
 export type RegimeStatusRegime =
   (typeof RegimeStatusRegime)[keyof typeof RegimeStatusRegime];
 
@@ -256,6 +277,10 @@ export type GetMarketHistoryParams = {
 
 export type GetPolymarketMarketsParams = {
   limit?: number;
+};
+
+export type GetNewsParams = {
+  symbol?: string;
 };
 
 export type GetMarketRegimeParams = {

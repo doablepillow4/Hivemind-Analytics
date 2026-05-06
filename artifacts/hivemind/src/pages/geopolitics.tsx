@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { useGetPolymarketMarkets, getGetPolymarketMarketsQueryKey } from "@workspace/api-client-react";
+import { useGetPolymarketMarkets, getGetPolymarketMarketsQueryKey, useGetNews, getGetNewsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe, BarChart2, CalendarDays, AlertTriangle, TrendingUp, TrendingDown,
-  Zap, Shield, Activity, ChevronDown, ChevronUp,
+  Zap, Shield, Activity, ChevronDown, ChevronUp, Radio, ExternalLink,
+  Newspaper, Clock, TrendingDown as BearIcon,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 const REGION_CONFIG: Record<string, { label: string; flag: string; keywords: string[] }> = {
   all:        { label: "All Regions", flag: "🌐", keywords: [] },
@@ -108,6 +109,163 @@ function GlobalRiskBarometer({ markets }: { markets: { yesPrice: number; questio
   );
 }
 
+const SENTIMENT_CONFIG = {
+  bullish: { label: "BULLISH", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", dot: "bg-emerald-400" },
+  bearish: { label: "BEARISH", color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20",     dot: "bg-red-400" },
+  neutral: { label: "NEUTRAL", color: "text-muted-foreground", bg: "bg-white/[0.04]", border: "border-white/[0.07]", dot: "bg-muted-foreground" },
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  conflict:    "⚔️ Conflict",
+  politics:    "🏛 Politics",
+  energy:      "⚡ Energy",
+  trade:       "🔄 Trade",
+  macro:       "📊 Macro",
+  geopolitics: "🌐 Geopolitics",
+};
+
+function NewsCard({ item }: { item: { id: string; title: string; description: string; url: string; source: string; publishedAt: string; sentiment: string; category: string; isBreaking: boolean } }) {
+  const s = SENTIMENT_CONFIG[item.sentiment as keyof typeof SENTIMENT_CONFIG] ?? SENTIMENT_CONFIG.neutral;
+  let timeAgo = "";
+  try { timeAgo = formatDistanceToNow(new Date(item.publishedAt), { addSuffix: true }); } catch { timeAgo = "recently"; }
+
+  return (
+    <div className={`relative border ${s.border} rounded-xl p-3.5 ${s.bg} transition-all duration-200`}>
+      {item.isBreaking && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+          <span className="text-[8px] font-mono font-700 text-red-400 uppercase tracking-widest">Breaking</span>
+        </div>
+      )}
+
+      <div className="flex items-start gap-2.5 pr-16">
+        <div className="shrink-0 mt-0.5">
+          <div className={`w-2 h-2 rounded-full ${s.dot} mt-1`} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <a
+            href={item.url !== "#" ? item.url : undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-[13px] font-semibold text-white leading-snug hover:text-primary transition-colors group"
+          >
+            <span>{item.title}</span>
+            {item.url !== "#" && (
+              <ExternalLink className="inline w-3 h-3 ml-1 text-muted-foreground/40 group-hover:text-primary/60 align-middle" />
+            )}
+          </a>
+
+          {item.description && (
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2">{item.description}</p>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+            <span className="text-[9px] font-mono font-600 px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-muted-foreground">
+              {item.source}
+            </span>
+            <span className={`text-[9px] font-mono font-700 px-1.5 py-0.5 rounded border ${s.border} ${s.color} ${s.bg}`}>
+              {s.label}
+            </span>
+            <span className="text-[9px] font-mono text-muted-foreground/50">
+              {CATEGORY_LABELS[item.category] ?? item.category}
+            </span>
+            <div className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground/40 ml-auto">
+              <Clock className="w-2.5 h-2.5" />
+              {timeAgo}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewsFeed({ news, isLoading }: { news: ReturnType<typeof useGetNews>["data"]; isLoading: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const items = Array.isArray(news) ? news : [];
+  const breakingItems = items.filter((n) => n.isBreaking);
+  const visible = expanded ? items : items.slice(0, 5);
+  const bearishCount = items.filter((n) => n.sentiment === "bearish").length;
+  const bullishCount = items.filter((n) => n.sentiment === "bullish").length;
+
+  return (
+    <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
+      <div className="h-0.5 w-full bg-gradient-to-r from-amber-500/60 via-primary/40 to-transparent" />
+      <CardContent className="p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Newspaper className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-mono font-700 text-white uppercase tracking-widest">Breaking News Feed</span>
+              {breakingItems.length > 0 && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15 border border-red-500/25">
+                  <Radio className="w-2.5 h-2.5 text-red-400 animate-pulse" />
+                  <span className="text-[8px] font-mono text-red-400 font-700">{breakingItems.length} LIVE</span>
+                </span>
+              )}
+            </div>
+            <p className="text-[9px] font-mono text-muted-foreground mt-0.5">
+              Reuters · BBC World · Al Jazeera · Guardian — feeds into AI lattice agents
+            </p>
+          </div>
+          {items.length > 0 && (
+            <div className="flex items-center gap-2 text-[9px] font-mono">
+              <span className="text-emerald-400 font-600">{bullishCount}B</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-red-400 font-600">{bearishCount}S</span>
+            </div>
+          )}
+        </div>
+
+        {/* Sentiment aggregate bar */}
+        {items.length > 0 && (
+          <div className="mb-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center justify-between text-[9px] font-mono text-muted-foreground mb-1.5">
+              <span>Aggregate News Sentiment</span>
+              <span className={bearishCount > bullishCount ? "text-red-400 font-600" : bullishCount > bearishCount ? "text-emerald-400 font-600" : "text-muted-foreground"}>
+                {bearishCount > bullishCount ? "RISK-OFF" : bullishCount > bearishCount ? "RISK-ON" : "MIXED"}
+              </span>
+            </div>
+            <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
+              <div className="h-full bg-emerald-500/50 transition-all duration-500" style={{ width: `${items.length ? (bullishCount / items.length) * 100 : 0}%` }} />
+              <div className="h-full bg-muted-foreground/20 transition-all duration-500" style={{ width: `${items.length ? ((items.length - bullishCount - bearishCount) / items.length) * 100 : 0}%` }} />
+              <div className="h-full bg-red-500/50 transition-all duration-500" style={{ width: `${items.length ? (bearishCount / items.length) * 100 : 0}%` }} />
+            </div>
+            <p className="text-[9px] font-mono text-muted-foreground/50 mt-1">
+              Live sentiment · feeds into Tail Risk agent during lattice analysis
+            </p>
+          </div>
+        )}
+
+        {/* Items */}
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
+            <Newspaper className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-[11px] text-muted-foreground">News feed unavailable</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {visible.map((item) => <NewsCard key={item.id} item={item} />)}
+            {items.length > 5 && (
+              <button
+                onClick={() => setExpanded((o) => !o)}
+                className="w-full text-[10px] font-mono text-muted-foreground/60 hover:text-white py-2 transition-colors flex items-center justify-center gap-1.5"
+              >
+                {expanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> {items.length - 5} more stories</>}
+              </button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function MarketCard({ market, region }: { market: { id: string; question: string; yesPrice: number; noPrice: number; volume?: number | null; endDate?: string | null; category?: string | null }; region: string }) {
   const [expanded, setExpanded] = useState(false);
   const risk = riskLevel(market.yesPrice);
@@ -117,7 +275,6 @@ function MarketCard({ market, region }: { market: { id: string; question: string
   return (
     <Card className={`border ${risk.border} ${risk.bg} backdrop-blur-sm overflow-hidden transition-all duration-200`}>
       <CardContent className="p-4">
-        {/* Header */}
         <div className="flex gap-3 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 mb-1.5">
@@ -148,7 +305,6 @@ function MarketCard({ market, region }: { market: { id: string; question: string
           </div>
         </div>
 
-        {/* YES/NO probability bars */}
         <div className="space-y-1.5 mb-3">
           <div className="relative h-7 bg-white/[0.04] rounded-lg overflow-hidden border border-white/[0.04]">
             <div
@@ -175,7 +331,6 @@ function MarketCard({ market, region }: { market: { id: string; question: string
           </div>
         </div>
 
-        {/* Meta row */}
         <div className="flex items-center justify-between border-t border-white/[0.05] pt-2.5">
           <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
             <div className="flex items-center gap-1">
@@ -199,16 +354,12 @@ function MarketCard({ market, region }: { market: { id: string; question: string
           </button>
         </div>
 
-        {/* Market impact expansion */}
         {expanded && (
           <div className="mt-3 pt-3 border-t border-white/[0.05] space-y-2">
             <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mb-2">Exposed Assets</div>
             <div className="flex flex-wrap gap-1.5">
               {exposure.tickers.map((t) => (
-                <span
-                  key={t}
-                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary"
-                >
+                <span key={t} className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary">
                   {t}
                 </span>
               ))}
@@ -222,9 +373,13 @@ function MarketCard({ market, region }: { market: { id: string; question: string
 }
 
 export default function Geopolitics() {
-  const { data: markets, isLoading } = useGetPolymarketMarkets(undefined, {
+  const { data: markets, isLoading: marketsLoading } = useGetPolymarketMarkets(undefined, {
     query: { queryKey: getGetPolymarketMarketsQueryKey() },
   });
+  const { data: news, isLoading: newsLoading } = useGetNews(undefined, {
+    query: { queryKey: getGetNewsQueryKey(), refetchInterval: 5 * 60 * 1000 },
+  });
+
   const [activeRegion, setActiveRegion] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"risk" | "volume" | "deadline">("risk");
 
@@ -262,14 +417,17 @@ export default function Geopolitics() {
         <h1 className="font-display text-[22px] font-700 text-white tracking-tight leading-none">Geopolitics</h1>
         <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5 font-mono">
           <Globe className="w-3 h-3 text-primary" />
-          Real-money prediction market intelligence · Polymarket live odds
+          Real-money prediction market intelligence · Live news · AI lattice integration
         </p>
       </div>
 
       {/* Global Risk Barometer */}
-      {!isLoading && marketList.length > 0 && (
+      {!marketsLoading && marketList.length > 0 && (
         <GlobalRiskBarometer markets={marketList} />
       )}
+
+      {/* Breaking News Feed */}
+      <NewsFeed news={news} isLoading={newsLoading} />
 
       {/* Risk summary pills */}
       {filtered.length > 0 && (
@@ -329,7 +487,7 @@ export default function Geopolitics() {
       </div>
 
       {/* Market cards */}
-      {isLoading ? (
+      {marketsLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-40 rounded-xl bg-card/40 border border-white/[0.05] animate-pulse" />

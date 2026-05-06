@@ -1,0 +1,174 @@
+import { logger } from "./logger";
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  category: string;
+  isBreaking: boolean;
+}
+
+export interface NewsContext {
+  sentiment: number;
+  weight: number;
+  headlines: string[];
+  breakingAlert: boolean;
+}
+
+const FEED_SOURCES = [
+  { name: "Reuters",    url: "https://feeds.reuters.com/reuters/worldNews" },
+  { name: "BBC World",  url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
+  { name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
+  { name: "Guardian",   url: "https://www.theguardian.com/world/rss" },
+];
+
+const BEARISH_KW = ["war", "attack", "conflict", "crisis", "crash", "collapse", "sanction", "threat", "explosion", "missile", "airstrike", "troops", "invasion", "escalat", "recession", "default", "ban", "restrict", "shooting", "assassination", "coup"];
+const BULLISH_KW = ["ceasefire", "peace", "deal", "agreement", "recovery", "stimulus", "rally", "surge", "growth", "approval", "partnership", "trade deal", "signed", "breakthrough"];
+
+function scoreSentiment(text: string): { sentiment: "bullish" | "bearish" | "neutral"; score: number } {
+  const lower = text.toLowerCase();
+  let score = 0;
+  for (const kw of BEARISH_KW) if (lower.includes(kw)) score -= 1;
+  for (const kw of BULLISH_KW) if (lower.includes(kw)) score += 1;
+  if (score <= -1) return { sentiment: "bearish", score: Math.max(-1, score / 4) };
+  if (score >= 1)  return { sentiment: "bullish", score: Math.min(1,  score / 4) };
+  return { sentiment: "neutral", score: 0 };
+}
+
+function classifyCategory(text: string): string {
+  const t = text.toLowerCase();
+  if (/war|conflict|attack|military|troops|missile|bomb|nuclear|weapon|drone|soldier/.test(t)) return "conflict";
+  if (/election|president|prime minister|government|congress|parliament|vote|senator/.test(t)) return "politics";
+  if (/oil|opec|energy|gas|pipeline|petroleum|barrel/.test(t)) return "energy";
+  if (/trade|tariff|sanction|export|import|wto|supply chain/.test(t)) return "trade";
+  if (/rate|inflation|gdp|economy|recession|central bank|fed|ecb|boe|monetary/.test(t)) return "macro";
+  return "geopolitics";
+}
+
+function extractValue(block: string, tag: string): string {
+  const cdataRe = new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*<\\/${tag}>`, "i");
+  const plainRe  = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const m = block.match(cdataRe) ?? block.match(plainRe);
+  return m ? m[1].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#[0-9]+;/g, "").trim() : "";
+}
+
+function parseRSS(xml: string, sourceName: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  const itemRe = /<item[^>]*>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRe.exec(xml)) !== null && items.length < 7) {
+    const block = match[1];
+    const title = extractValue(block, "title");
+    const url   = extractValue(block, "link") || extractValue(block, "guid");
+    const pubDate = extractValue(block, "pubDate") || extractValue(block, "dc:date") || extractValue(block, "published");
+    const desc  = extractValue(block, "description").slice(0, 280);
+
+    if (!title || title.length < 8) continue;
+
+    let publishedAt: string;
+    try { publishedAt = pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(); }
+    catch { publishedAt = new Date().toISOString(); }
+
+    const isBreaking = Date.now() - new Date(publishedAt).getTime() < 2 * 60 * 60 * 1000;
+    const { sentiment } = scoreSentiment(title + " " + desc);
+    const category = classifyCategory(title + " " + desc);
+    const idKey = Buffer.from(title.slice(0, 24)).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
+
+    items.push({ id: `${sourceName.toLowerCase().replace(/\s/g, "-")}-${idKey}`, title, description: desc, url: url || "#", source: sourceName, publishedAt, sentiment, category, isBreaking });
+  }
+  return items;
+}
+
+let _cache: { items: NewsItem[]; expiry: number } | null = null;
+
+export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
+  if (_cache && Date.now() < _cache.expiry) return _cache.items;
+
+  const all: NewsItem[] = [];
+
+  await Promise.all(
+    FEED_SOURCES.map(async ({ name, url }) => {
+      try {
+        const res = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; Hivemind/1.0)", Accept: "application/rss+xml, application/xml, text/xml, */*" },
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        all.push(...parseRSS(text, name));
+      } catch (err) {
+        logger.warn({ source: name, err }, "News feed fetch failed");
+      }
+    })
+  );
+
+  all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  const items = all.length > 0 ? all.slice(0, 24) : getFallbackNews();
+  _cache = { items, expiry: Date.now() + 5 * 60 * 1000 };
+  return items;
+}
+
+const SYMBOL_KEYWORDS: Record<string, string[]> = {
+  BTC:  ["bitcoin", "crypto", "cryptocurrency"],
+  ETH:  ["ethereum", "crypto"],
+  XRP:  ["ripple", "xrp"],
+  ADA:  ["cardano"],
+  DOGE: ["dogecoin"],
+  NVDA: ["nvidia", "semiconductor", "chip", "ai chip", "taiwan"],
+  TSM:  ["tsmc", "taiwan semiconductor"],
+  AAPL: ["apple", "iphone"],
+  MSFT: ["microsoft"],
+  AMZN: ["amazon", "aws"],
+  META: ["facebook", "meta"],
+  GOOGL:["google", "alphabet"],
+  TSLA: ["tesla", "elon musk"],
+  SPY:  ["s&p", "market", "economy", "fed", "recession"],
+  GLD:  ["gold", "safe haven"],
+  XOM:  ["oil", "energy", "opec", "exxon"],
+  AVAX: ["avalanche"],
+  SOL:  ["solana"],
+};
+
+export async function getNewsContextForSymbol(symbol: string): Promise<NewsContext> {
+  const news = await fetchGeopoliticsNews();
+  const kws = SYMBOL_KEYWORDS[symbol.toUpperCase()] ?? [symbol.toLowerCase()];
+
+  let relevant = news.filter((n) => {
+    const text = (n.title + " " + n.description).toLowerCase();
+    return kws.some((kw) => text.includes(kw));
+  });
+
+  if (relevant.length === 0) {
+    relevant = news.filter((n) => n.category === "macro" || n.category === "geopolitics").slice(0, 4);
+  }
+
+  return buildNewsContext(relevant.slice(0, 5));
+}
+
+function buildNewsContext(items: NewsItem[]): NewsContext {
+  if (items.length === 0) return { sentiment: 0, weight: 0, headlines: [], breakingAlert: false };
+  const avg = items.reduce((sum, n) => sum + scoreSentiment(n.title).score, 0) / items.length;
+  return {
+    sentiment: parseFloat(avg.toFixed(3)),
+    weight:    parseFloat(Math.min(1, items.length / 5).toFixed(2)),
+    headlines: items.slice(0, 3).map((n) => n.title),
+    breakingAlert: items.some((n) => n.isBreaking),
+  };
+}
+
+function getFallbackNews(): NewsItem[] {
+  const now = new Date().toISOString();
+  return [
+    { id: "fb-1", title: "Middle East Tensions Elevate Oil Market Risk Premium",           description: "Escalating tensions near the Strait of Hormuz raise concerns over supply disruption.",        url: "#", source: "Hivemind", publishedAt: now, sentiment: "bearish", category: "energy",      isBreaking: false },
+    { id: "fb-2", title: "Fed Officials Signal Caution on Rate Cuts Amid Sticky Inflation", description: "Federal Reserve speakers push back on early easing expectations.",                              url: "#", source: "Hivemind", publishedAt: now, sentiment: "bearish", category: "macro",       isBreaking: false },
+    { id: "fb-3", title: "Ukraine-Russia Ceasefire Talks Stall, Markets on Edge",          description: "Diplomatic efforts hit a roadblock as both sides maintain hardline positions.",               url: "#", source: "Hivemind", publishedAt: now, sentiment: "bearish", category: "conflict",     isBreaking: false },
+    { id: "fb-4", title: "China GDP Growth Misses Estimates, Trade Tensions Flare",        description: "Weaker-than-expected Chinese output data adds to global growth concerns.",                    url: "#", source: "Hivemind", publishedAt: now, sentiment: "bearish", category: "macro",       isBreaking: false },
+    { id: "fb-5", title: "US-EU Trade Deal Progress Boosts Risk Appetite",                 description: "Reports of progress on transatlantic trade framework lift equities.",                         url: "#", source: "Hivemind", publishedAt: now, sentiment: "bullish", category: "trade",       isBreaking: false },
+    { id: "fb-6", title: "OPEC+ Maintains Output Cuts Through Next Quarter",               description: "Cartel reaffirms production discipline keeping oil supported.",                               url: "#", source: "Hivemind", publishedAt: now, sentiment: "neutral", category: "energy",      isBreaking: false },
+  ];
+}

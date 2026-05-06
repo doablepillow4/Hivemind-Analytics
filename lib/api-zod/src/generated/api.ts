@@ -138,9 +138,6 @@ export const RunMonteCarloResponse = zod.object({
   p90: zod.number(),
   bullishProbability: zod.number(),
   bearishProbability: zod.number(),
-  var95: zod.number(),
-  maxDrawdown: zod.number(),
-  expectedReturn: zod.number(),
   paths: zod.array(zod.array(zod.number())),
 });
 
@@ -167,6 +164,26 @@ export const GetPolymarketMarketsResponseItem = zod.object({
 export const GetPolymarketMarketsResponse = zod.array(
   GetPolymarketMarketsResponseItem,
 );
+
+/**
+ * @summary Get latest geopolitical and financial news
+ */
+export const GetNewsQueryParams = zod.object({
+  symbol: zod.coerce.string().optional(),
+});
+
+export const GetNewsResponseItem = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  description: zod.string(),
+  url: zod.string(),
+  source: zod.string(),
+  publishedAt: zod.string(),
+  sentiment: zod.enum(["bullish", "bearish", "neutral"]),
+  category: zod.string(),
+  isBreaking: zod.boolean(),
+});
+export const GetNewsResponse = zod.array(GetNewsResponseItem);
 
 /**
  * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
@@ -223,23 +240,6 @@ export const RunLatticeResponse = zod.object({
   causalNarrative: zod.string(),
   minorityReport: zod.string().nullish(),
   agentConsensus: zod.number(),
-});
-
-/**
- * @summary Challenge a specific lattice agent mid-debate
- */
-export const LatticeChallengeBody = zod.object({
-  agentType: zod.string(),
-  challenge: zod.string(),
-  symbol: zod.string(),
-  currentProbability: zod.number(),
-});
-
-export const LatticeChallengeResponse = zod.object({
-  agentType: zod.string(),
-  response: zod.string(),
-  adjustment: zod.number(),
-  newProbability: zod.number(),
 });
 
 /**
