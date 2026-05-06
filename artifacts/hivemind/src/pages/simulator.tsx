@@ -17,7 +17,8 @@ export default function Simulator() {
   const [timeHorizon, setTimeHorizon] = useState<number>(30);
   const [simulations, setSimulations] = useState<number>(1000);
 
-  const selectedPrice = prices?.find((p) => p.symbol === selectedSymbol);
+  const priceList = Array.isArray(prices) ? prices : [];
+  const selectedPrice = priceList.find((p) => p.symbol === selectedSymbol);
 
   const handleRun = () => {
     if (!selectedSymbol || !selectedPrice) return;
@@ -25,8 +26,8 @@ export default function Simulator() {
       data: {
         symbol: selectedSymbol,
         currentPrice: selectedPrice.price,
-        volatility: volatility / 100,
-        eventImpact: eventImpact / 100,
+        volatility,
+        eventImpact,
         timeHorizon,
         simulations,
       },
@@ -55,7 +56,7 @@ export default function Simulator() {
                 <SelectValue placeholder="Select Asset" />
               </SelectTrigger>
               <SelectContent>
-                {prices?.map((p) => (
+                {priceList.map((p) => (
                   <SelectItem key={p.symbol} value={p.symbol}>
                     {p.symbol} — ${p.price.toFixed(2)}
                   </SelectItem>

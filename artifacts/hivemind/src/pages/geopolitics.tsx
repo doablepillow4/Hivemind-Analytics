@@ -10,18 +10,19 @@ export default function Geopolitics() {
   });
   const [activeTab, setActiveTab] = useState<string>("all");
 
+  const marketList = Array.isArray(markets) ? markets : [];
+
   const categories = useMemo(() => {
-    if (!markets) return ["all"];
+    if (marketList.length === 0) return ["all"];
     const cats = new Set<string>();
-    markets.forEach((m) => { if (m.category) cats.add(m.category.toLowerCase()); });
+    marketList.forEach((m) => { if (m.category) cats.add(m.category.toLowerCase()); });
     return ["all", ...Array.from(cats)].sort();
-  }, [markets]);
+  }, [marketList]);
 
   const filteredMarkets = useMemo(() => {
-    if (!markets) return [];
-    const filtered = activeTab === "all" ? markets : markets.filter((m) => m.category?.toLowerCase() === activeTab);
+    const filtered = activeTab === "all" ? marketList : marketList.filter((m) => m.category?.toLowerCase() === activeTab);
     return [...filtered].sort((a, b) => (b.volume || 0) - (a.volume || 0));
-  }, [markets, activeTab]);
+  }, [marketList, activeTab]);
 
   return (
     <div className="space-y-5">

@@ -269,6 +269,7 @@ export default function Lattice() {
   });
 
   const result = runLattice.data;
+  const agentList = Array.isArray(agents) ? agents : [];
 
   return (
     <div className="space-y-5">
@@ -330,7 +331,7 @@ export default function Lattice() {
       {result && <LatticeResultView result={result} />}
 
       {/* Agent reputation panel */}
-      {agents && agents.length > 0 && (
+      {agentList.length > 0 && (
         <Card className="bg-card/50 border-white/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -338,7 +339,7 @@ export default function Lattice() {
               <div className="text-xs font-semibold text-white">Agent Reputation</div>
             </div>
             <div className="space-y-2">
-              {agents.map((agent) => (
+              {agentList.map((agent) => (
                 <div key={agent.agentId} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <Activity className={`w-3 h-3 shrink-0 ${AGENT_COLORS[agent.agentType] ?? "text-white"}`} />
