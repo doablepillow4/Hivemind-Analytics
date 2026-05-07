@@ -9,6 +9,7 @@ import {
   getGetPredictionsQueryKey,
   getGetPredictionsSummaryQueryKey,
 } from "@workspace/api-client-react";
+import type { MarketPrice, PredictionsSummary } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Activity,
@@ -33,23 +34,66 @@ import {
 import { TickerCombobox } from "@/components/ticker-combobox";
 import { useAppStore } from "@/store/app-store";
 
+function makeSparkline(base: number, len = 15): number[] {
+  const pts: number[] = [base];
+  for (let i = 1; i < len; i++) pts.push(pts[i - 1] * (1 + (Math.random() - 0.5) * 0.012));
+  return pts;
+}
+
+const PLACEHOLDER_PRICES: MarketPrice[] = [
+  { symbol: "BTC", name: "Bitcoin", price: 97500, change: 1220, changePercent: 1.27, volume: 28_400_000_000, marketCap: 1_920_000_000_000, type: "crypto", sparkline: makeSparkline(97500), updatedAt: new Date().toISOString() },
+  { symbol: "ETH", name: "Ethereum", price: 1875, change: -18, changePercent: -0.95, volume: 13_200_000_000, marketCap: 225_000_000_000, type: "crypto", sparkline: makeSparkline(1875), updatedAt: new Date().toISOString() },
+  { symbol: "SOL", name: "Solana", price: 148, change: 3.2, changePercent: 2.21, volume: 4_100_000_000, marketCap: 68_000_000_000, type: "crypto", sparkline: makeSparkline(148), updatedAt: new Date().toISOString() },
+  { symbol: "BNB", name: "BNB", price: 598, change: -4.5, changePercent: -0.75, volume: 1_800_000_000, marketCap: 86_000_000_000, type: "crypto", sparkline: makeSparkline(598), updatedAt: new Date().toISOString() },
+  { symbol: "DOGE", name: "Dogecoin", price: 0.178, change: 0.004, changePercent: 2.3, volume: 1_200_000_000, marketCap: 26_000_000_000, type: "crypto", sparkline: makeSparkline(0.178), updatedAt: new Date().toISOString() },
+  { symbol: "AVAX", name: "Avalanche", price: 22.5, change: -0.6, changePercent: -2.6, volume: 420_000_000, marketCap: 9_400_000_000, type: "crypto", sparkline: makeSparkline(22.5), updatedAt: new Date().toISOString() },
+  { symbol: "AAPL", name: "Apple Inc", price: 213.4, change: 1.8, changePercent: 0.85, volume: 54_000_000, marketCap: 3_280_000_000_000, type: "stock", sparkline: makeSparkline(213.4), updatedAt: new Date().toISOString() },
+  { symbol: "MSFT", name: "Microsoft", price: 418.2, change: -2.4, changePercent: -0.57, volume: 22_000_000, marketCap: 3_100_000_000_000, type: "stock", sparkline: makeSparkline(418.2), updatedAt: new Date().toISOString() },
+  { symbol: "NVDA", name: "NVIDIA", price: 876.3, change: 18.4, changePercent: 2.14, volume: 48_000_000, marketCap: 2_160_000_000_000, type: "stock", sparkline: makeSparkline(876.3), updatedAt: new Date().toISOString() },
+  { symbol: "TSLA", name: "Tesla", price: 174.6, change: -3.9, changePercent: -2.18, volume: 87_000_000, marketCap: 556_000_000_000, type: "stock", sparkline: makeSparkline(174.6), updatedAt: new Date().toISOString() },
+  { symbol: "AMZN", name: "Amazon", price: 196.8, change: 0.9, changePercent: 0.46, volume: 31_000_000, marketCap: 2_070_000_000_000, type: "stock", sparkline: makeSparkline(196.8), updatedAt: new Date().toISOString() },
+  { symbol: "GOOGL", name: "Alphabet", price: 168.5, change: 1.2, changePercent: 0.72, volume: 19_000_000, marketCap: 2_080_000_000_000, type: "stock", sparkline: makeSparkline(168.5), updatedAt: new Date().toISOString() },
+];
+
+const PLACEHOLDER_SUMMARY: PredictionsSummary = {
+  totalPredictions: 0,
+  correctPredictions: 0,
+  accuracy: 0,
+  averageConfidence: 0,
+  recentAccuracy: 0,
+  improvementTrend: 0,
+  bySymbol: {},
+};
+
 export default function Dashboard() {
   const {
     data: prices,
     isLoading: loadingPrices,
     error: pricesError,
   } = useGetMarketPrices({
-    query: { refetchInterval: 30000, queryKey: getGetMarketPricesQueryKey() },
+    query: {
+      refetchInterval: 30000,
+      queryKey: getGetMarketPricesQueryKey(),
+      placeholderData: PLACEHOLDER_PRICES,
+    },
   });
   const {
     data: predictions,
     isLoading: loadingPredictions,
     error: predictionsError,
   } = useGetPredictions({
-    query: { refetchInterval: 30000, queryKey: getGetPredictionsQueryKey() },
+    query: {
+      refetchInterval: 30000,
+      queryKey: getGetPredictionsQueryKey(),
+      placeholderData: [],
+    },
   });
   const { data: summary, error: summaryError } = useGetPredictionsSummary({
-    query: { refetchInterval: 30000, queryKey: getGetPredictionsSummaryQueryKey() },
+    query: {
+      refetchInterval: 30000,
+      queryKey: getGetPredictionsSummaryQueryKey(),
+      placeholderData: PLACEHOLDER_SUMMARY,
+    },
   });
 
   const queryClient = useQueryClient();
@@ -137,7 +181,7 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Model Accuracy</div>
             <div className="stat-number text-white mb-1">
-              {summary ? (
+              {summary && summary.totalPredictions > 0 ? (
                 `${(summary.accuracy * 100).toFixed(1)}%`
               ) : (
                 <span className="text-white/20">——</span>
@@ -153,7 +197,7 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Avg Confidence</div>
             <div className="stat-number text-white mb-2">
-              {summary ? (
+              {summary && summary.totalPredictions > 0 ? (
                 `${(summary.averageConfidence * 100).toFixed(1)}%`
               ) : (
                 <span className="text-white/20">——</span>
@@ -163,7 +207,7 @@ export default function Dashboard() {
               <div
                 className="h-full bg-primary rounded-full transition-all duration-700"
                 style={{
-                  width: `${summary ? summary.averageConfidence * 100 : 0}%`,
+                  width: `${summary && summary.totalPredictions > 0 ? summary.averageConfidence * 100 : 0}%`,
                   boxShadow: "0 0 8px rgba(0,212,255,0.6)",
                 }}
               />
@@ -175,13 +219,13 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">30-Day Accuracy</div>
             <div className="stat-number text-white mb-1">
-              {summary ? (
+              {summary && summary.totalPredictions > 0 ? (
                 `${(summary.recentAccuracy * 100).toFixed(1)}%`
               ) : (
                 <span className="text-white/20">——</span>
               )}
             </div>
-            {summary && (
+            {summary && summary.totalPredictions > 0 && (
               <div
                 className={`text-[10px] font-mono flex items-center gap-0.5 ${summary.improvementTrend > 0 ? "text-emerald-400" : "text-red-400"}`}
               >
@@ -200,7 +244,7 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="data-label mb-2">Resolved</div>
             <div className="stat-number text-white mb-1">
-              {summary ? (
+              {summary && summary.totalPredictions > 0 ? (
                 `${summary.correctPredictions}/${summary.totalPredictions}`
               ) : (
                 <span className="text-white/20">——</span>
@@ -361,7 +405,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {loadingPrices ? (
+        {loadingPrices && priceList.length === 0 ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -445,7 +489,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {loadingPredictions ? (
+        {loadingPredictions && predictionList.length === 0 ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
               <div

@@ -33,6 +33,33 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 
+// ─── Placeholder / fallback data ─────────────────────────────────────────────
+const _now = new Date().toISOString();
+const _1h = new Date(Date.now() - 3_600_000).toISOString();
+const _2h = new Date(Date.now() - 7_200_000).toISOString();
+
+const PLACEHOLDER_NEWS: NewsItem[] = [
+  { id: "ph-1", title: "Middle East Tensions Elevate Oil Market Risk Premium", description: "Escalating tensions near the Strait of Hormuz raise concerns over supply disruption.", url: "#", source: "Hivemind Intel", publishedAt: _1h, sentiment: "bearish", category: "energy", isBreaking: true },
+  { id: "ph-2", title: "Fed Officials Signal Caution on Rate Cuts Amid Sticky Inflation", description: "Federal Reserve speakers push back on early easing expectations.", url: "#", source: "Hivemind Intel", publishedAt: _2h, sentiment: "bearish", category: "macro", isBreaking: false },
+  { id: "ph-3", title: "Ukraine-Russia Ceasefire Talks Stall as Both Sides Harden Positions", description: "Diplomatic efforts hit a roadblock ahead of next negotiations.", url: "#", source: "Hivemind Intel", publishedAt: _2h, sentiment: "bearish", category: "conflict", isBreaking: false },
+  { id: "ph-4", title: "China GDP Growth Misses Estimates, Trade Tensions Flare", description: "Weaker-than-expected output data adds to global growth concerns.", url: "#", source: "Hivemind Intel", publishedAt: _now, sentiment: "bearish", category: "macro", isBreaking: false },
+  { id: "ph-5", title: "US-EU Trade Deal Progress Boosts Risk Appetite", description: "Reports of progress on transatlantic trade framework lift equities.", url: "#", source: "Hivemind Intel", publishedAt: _now, sentiment: "bullish", category: "trade", isBreaking: false },
+  { id: "ph-6", title: "OPEC+ Reaffirms Output Cuts Through Next Quarter", description: "Cartel reaffirms production discipline keeping oil prices supported.", url: "#", source: "Hivemind Intel", publishedAt: _now, sentiment: "neutral", category: "energy", isBreaking: false },
+  { id: "ph-7", title: "Bitcoin Holds Above Key Support as Institutional Flows Stabilize", description: "BTC consolidates after volatility spike as ETF inflows resume.", url: "#", source: "Hivemind Intel", publishedAt: _now, sentiment: "bullish", category: "crypto", isBreaking: false },
+  { id: "ph-8", title: "Taiwan Strait Tensions Rise on PLA Naval Exercise Reports", description: "Beijing orders large-scale naval exercises near Taiwan.", url: "#", source: "Hivemind Intel", publishedAt: _1h, sentiment: "bearish", category: "geopolitics", isBreaking: true },
+  { id: "ph-9", title: "Global Health Officials Monitor Novel Respiratory Outbreak", description: "WHO convenes emergency session as cluster of unusual respiratory cases reported.", url: "#", source: "Hivemind Intel", publishedAt: _1h, sentiment: "bearish", category: "pandemic", isBreaking: true },
+  { id: "ph-10", title: "Nvidia AI Chip Demand Outpaces Supply, Shares Hit Record", description: "Data center AI buildout accelerates as hyperscalers commit multi-year GPU contracts.", url: "#", source: "Hivemind Intel", publishedAt: _now, sentiment: "bullish", category: "technology", isBreaking: false },
+];
+
+const PLACEHOLDER_MARKETS: PolymarketMarket[] = [
+  { id: "pm-1", question: "Will the US Federal Reserve cut rates in 2025?", category: "macro", yesPrice: 0.62, noPrice: 0.38, volume: 4_200_000, endDate: "2025-12-31", url: "#" },
+  { id: "pm-2", question: "Will Bitcoin reach $100k before end of 2025?", category: "crypto", yesPrice: 0.55, noPrice: 0.45, volume: 8_700_000, endDate: "2025-12-31", url: "#" },
+  { id: "pm-3", question: "Will there be a US-China trade deal in 2025?", category: "trade", yesPrice: 0.28, noPrice: 0.72, volume: 2_100_000, endDate: "2025-12-31", url: "#" },
+  { id: "pm-4", question: "Will Ukraine-Russia ceasefire be reached in 2025?", category: "conflict", yesPrice: 0.41, noPrice: 0.59, volume: 5_300_000, endDate: "2025-12-31", url: "#" },
+  { id: "pm-5", question: "Will OPEC+ maintain current production cuts through Q3?", category: "energy", yesPrice: 0.71, noPrice: 0.29, volume: 1_800_000, endDate: "2025-09-30", url: "#" },
+  { id: "pm-6", question: "Will there be a new WHO global health emergency declared?", category: "pandemic", yesPrice: 0.33, noPrice: 0.67, volume: 920_000, endDate: "2025-12-31", url: "#" },
+];
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface GeoImpactAnalysis {
   type: string;
@@ -493,13 +520,18 @@ export default function Geopolitics() {
   const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
 
   const { data: newsData, isLoading: loadingNews } = useGetNews(undefined, {
-    query: { queryKey: getGetNewsQueryKey(), refetchInterval: 60000 },
+    query: {
+      queryKey: getGetNewsQueryKey(),
+      refetchInterval: 60000,
+      placeholderData: PLACEHOLDER_NEWS,
+    },
   });
 
   const { data: polymarketData, isLoading: loadingMarkets } = useGetPolymarketMarkets(undefined, {
     query: {
       queryKey: ["polymarket-markets"],
       refetchInterval: 120000,
+      placeholderData: PLACEHOLDER_MARKETS,
     },
   });
 
