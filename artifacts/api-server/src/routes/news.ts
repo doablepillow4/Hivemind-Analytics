@@ -29,7 +29,21 @@ router.get("/news", async (req, res): Promise<void> => {
     res.json(GetNewsResponse.parse(filtered));
   } catch (err) {
     logger.error({ err }, "Failed to serve news");
-    res.status(500).json({ error: "Failed to fetch news" });
+    res.json(
+      GetNewsResponse.parse([
+        {
+          id: "fallback-geopolitics-1",
+          title: "Global markets watch geopolitical tensions and rate outlook",
+          description: "Fallback news item while live feeds are unavailable.",
+          url: "#",
+          source: "Hivemind",
+          publishedAt: new Date().toISOString(),
+          sentiment: "neutral",
+          category: "geopolitics",
+          isBreaking: false,
+        },
+      ]),
+    );
   }
 });
 
