@@ -31,6 +31,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface GeoImpactAnalysis {
@@ -491,12 +492,15 @@ export default function Geopolitics() {
   const [analyses, setAnalyses] = useState<Record<string, GeoImpactAnalysis>>({});
   const [loadingAnalysis, setLoadingAnalysis] = useState<Record<string, boolean>>({});
 
-  const { data: newsData, isLoading: loadingNews } = useGetNews({
-    query: { refetchInterval: 60000, queryKey: getGetNewsQueryKey() },
+  const { data: newsData, isLoading: loadingNews } = useGetNews(undefined, {
+    query: { queryKey: getGetNewsQueryKey(), refetchInterval: 60000 },
   });
 
-  const { data: polymarketData, isLoading: loadingMarkets } = useGetPolymarketMarkets({
-    query: { refetchInterval: 120000 },
+  const { data: polymarketData, isLoading: loadingMarkets } = useGetPolymarketMarkets(undefined, {
+    query: {
+      queryKey: ["polymarket-markets"],
+      refetchInterval: 120000,
+    },
   });
 
   const filteredNews = useMemo(() => {
@@ -524,6 +528,7 @@ export default function Geopolitics() {
     });
     return groups;
   }, [polymarketData]);
+  const markets = Array.isArray(polymarketData) ? polymarketData : [];
 
   async function handleExpand(item: NewsItem) {
     if (expandedNews === item.id) {
@@ -961,7 +966,7 @@ export default function Geopolitics() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {m.oddsShift !== null && m.oddsShift !== 0 && (
+                                  {typeof m.oddsShift === "number" && m.oddsShift !== 0 && (
                                     <div
                                       className={`flex items-center gap-0.5 text-[9px] font-mono ${m.oddsShift > 0 ? "text-emerald-400" : "text-red-400"}`}
                                     >
@@ -974,7 +979,7 @@ export default function Geopolitics() {
                                     </div>
                                   )}
                                   <div className="px-1.5 py-0.5 rounded-[4px] bg-white/[0.05] border border-white/[0.08] text-[8px] font-mono text-muted-foreground">
-                                    ${(m.volume / 1000000).toFixed(1)}M Vol
+                                    ${((m.volume ?? 0) / 1000000).toFixed(1)}M Vol
                                   </div>
                                 </div>
                               </div>
