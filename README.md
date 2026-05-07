@@ -73,7 +73,7 @@ A premium dark-themed predictive analytics platform combining live market data, 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-org/hivemind-predictor.git
+git clone https://github.com/doablepillow4/hivemind-predictor.git
 cd hivemind-predictor
 pnpm install
 ```
