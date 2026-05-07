@@ -180,27 +180,33 @@ const REGION_CONFIG: Record<string, { label: string; flag: string; keywords: str
   americas: {
     label: "Americas",
     flag: "🌎",
-    keywords: ["us", "usa", "america", "canada", "mexico", "brazil", "latin", "election", "trump", "biden", "congress", "fed", "dollar"],
+    keywords: [
+      "us ", "u.s.", "usa", "america", "american", "canada", "mexico", "brazil", "latin",
+      "election", "trump", "biden", "congress", "fed ", "federal reserve", "dollar",
+      "democratic", "republican", "democrat", "presidential", "nomination",
+      "senate", "house of rep", "wall street", "nasdaq", "s&p", "dow ",
+      "white house", "pentagon", "washington",
+    ],
   },
   europe: {
     label: "Europe",
     flag: "🇪🇺",
-    keywords: ["europe", "eu", "nato", "ukraine", "russia", "uk", "britain", "germany", "france", "ecb", "euro"],
+    keywords: ["europe", "european", " eu ", "nato", "ukraine", "russia", "uk ", "britain", "british", "germany", "german", "france", "french", "ecb", "euro", "macron", "scholz", "zelensky", "putin", "brexit", "poland", "swedish"],
   },
   middleeast: {
     label: "Middle East",
     flag: "🌙",
-    keywords: ["iran", "israel", "saudi", "gulf", "opec", "oil", "yemen", "iraq", "syria", "hormuz", "hamas", "hezbollah"],
+    keywords: ["iran", "israel", "israeli", "saudi", "gulf", "opec", "oil price", "yemen", "iraq", "syria", "hormuz", "hamas", "hezbollah", "gaza", "netanyahu", "beirut", "tehran", "riyadh"],
   },
   asia: {
     label: "Asia Pacific",
     flag: "🌏",
-    keywords: ["china", "taiwan", "japan", "korea", "india", "asean", "xi", "south china", "pacific", "semiconductor"],
+    keywords: ["china", "chinese", "taiwan", "japan", "japanese", "korea", "korean", "india", "indian", "asean", "xi jinping", "south china", "pacific", "semiconductor", "beijing", "tokyo", "seoul", "modi", "philippines", "vietnam"],
   },
   global: {
     label: "Global",
     flag: "⚡",
-    keywords: ["global", "world", "imf", "g7", "g20", "wto", "pandemic", "climate", "inflation", "rate", "nuclear"],
+    keywords: ["global", "world", "imf", "g7", "g20", "wto", "pandemic", "climate", "inflation", "interest rate", "nuclear", "bitcoin", "crypto", "ethereum", "ai ", "artificial intelligence", "recession", "gdp", "gold ", "oil barrel"],
   },
 };
 
@@ -233,12 +239,14 @@ function getMarketExposure(question: string) {
 }
 
 function classifyRegion(market: { question: string; category?: string | null }): string {
-  const text = `${market.question} ${market.category ?? ""}`.toLowerCase();
+  const text = ` ${market.question} ${market.category ?? ""} `.toLowerCase();
   for (const [key, cfg] of Object.entries(REGION_CONFIG)) {
-    if (key === "all") continue;
+    if (key === "all" || key === "global") continue;
     if (cfg.keywords.some((kw) => text.includes(kw))) return key;
   }
-  return "global";
+  const globalCfg = REGION_CONFIG["global"];
+  if (globalCfg && globalCfg.keywords.some((kw) => text.includes(kw))) return "global";
+  return "americas";
 }
 
 function riskLevel(yesPrice: number) {
@@ -1154,7 +1162,10 @@ export default function Geopolitics() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-white/10 rounded-xl">
             <Globe className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
-            <p className="text-[11px] text-muted-foreground">No markets for this region</p>
+            <p className="text-[11px] text-muted-foreground">No active markets for this region</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-1 font-mono">
+              Try <button className="text-primary/70 hover:text-primary underline" onClick={() => setActiveRegion("all")}>All Regions</button> to see {marketsWithRegion.length} live markets
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

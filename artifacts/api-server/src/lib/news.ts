@@ -20,10 +20,10 @@ export interface NewsContext {
 }
 
 const FEED_SOURCES = [
-  { name: "Reuters", url: "https://feeds.reuters.com/reuters/worldNews" },
   { name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
   { name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
   { name: "Guardian", url: "https://www.theguardian.com/world/rss" },
+  { name: "NPR World", url: "https://feeds.npr.org/1004/rss.xml" },
 ];
 
 const BEARISH_KW = [
@@ -180,7 +180,7 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
             "User-Agent": "Mozilla/5.0 (compatible; Hivemind/1.0)",
             Accept: "application/rss+xml, application/xml, text/xml, */*",
           },
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();

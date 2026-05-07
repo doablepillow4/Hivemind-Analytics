@@ -391,7 +391,7 @@ function GeoIntelPanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Simulator() {
-  const { data: prices } = useGetMarketPrices();
+  const { data: prices, isLoading: pricesLoading } = useGetMarketPrices();
   const runMonteCarlo = useRunMonteCarlo();
   const [activeTab, setActiveTab] = useState<"market" | "geo">("market");
 
@@ -520,8 +520,16 @@ export default function Simulator() {
             </div>
           )}
 
+          {/* Loading state while prices initialise */}
+          {pricesLoading && selectedSymbol && !knownAsset && !quotedAsset && (
+            <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/60">
+              <div className="w-3 h-3 border border-muted-foreground/30 border-t-transparent rounded-full animate-spin" />
+              Loading live prices for {selectedSymbol}…
+            </div>
+          )}
+
           {/* Custom price input */}
-          {isCustomTicker && !quoteFetching && !quotedAsset && (
+          {isCustomTicker && !pricesLoading && !quoteFetching && !quotedAsset && (
             <div className="space-y-1.5">
               <label className="data-label flex items-center gap-1.5">
                 <AlertTriangle className="w-3 h-3 text-amber-400" />
@@ -540,8 +548,8 @@ export default function Simulator() {
                 />
               </div>
               <p className="text-[10px] text-amber-400/70 font-mono">
-                {selectedSymbol} not found in live feed — enter price manually or it will be fetched
-                automatically.
+                {selectedSymbol} is not in the default asset list — enter a price manually or use
+                the lookup above to fetch live data.
               </p>
             </div>
           )}
