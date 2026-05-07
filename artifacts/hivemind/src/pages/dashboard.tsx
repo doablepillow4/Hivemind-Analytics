@@ -40,9 +40,11 @@ export default function Dashboard() {
     data: prices,
     isLoading: loadingPrices,
     error: pricesError,
+    refetch: retryPrices,
   } = useGetMarketPrices({
     query: {
       refetchInterval: 30000,
+      refetchOnMount: "always",
       queryKey: getGetMarketPricesQueryKey(),
     },
   });
@@ -374,11 +376,19 @@ export default function Dashboard() {
             ))}
           </div>
         ) : pricesError && priceList.length === 0 ? (
-          <div className="py-12 text-center border border-dashed border-red-500/20 rounded-xl bg-red-500/5">
-            <WifiOff className="w-6 h-6 text-red-400/50 mx-auto mb-2" />
+          <div className="py-12 text-center border border-dashed border-red-500/20 rounded-xl bg-red-500/5 space-y-3">
+            <WifiOff className="w-6 h-6 text-red-400/50 mx-auto" />
             <p className="text-[12px] text-red-300/70">
-              Live market data unavailable. Retrying…
+              Live market data unavailable.
             </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-[11px] font-mono gap-1.5"
+              onClick={() => retryPrices()}
+            >
+              Retry Now
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

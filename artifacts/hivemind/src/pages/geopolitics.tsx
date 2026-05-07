@@ -28,12 +28,10 @@ import {
   Users,
   Loader2,
   Radar,
-  ArrowRight,
   WifiOff,
   Telescope,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Button } from "@/components/ui/button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface GeoImpactAnalysis {

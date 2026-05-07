@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useRunLattice,
   useGetLatticeAgents,
@@ -1699,6 +1699,7 @@ function DebateView({
 export default function Lattice() {
   const [symbol, setSymbol] = useState("");
   const [timeframe, setTimeframe] = useState("7d");
+  const queryClient = useQueryClient();
   const runLattice = useRunLattice();
   const { data: agents } = useGetLatticeAgents({
     query: { queryKey: getGetLatticeAgentsQueryKey() },
@@ -1715,7 +1716,11 @@ export default function Lattice() {
   function handleRun() {
     if (!symbol) return;
     resetUpvotes();
-    runLattice.mutate({ data: { symbol, timeframe } });
+    runLattice.mutate({ data: { symbol, timeframe } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["lattice-runs", symbol] });
+      },
+    });
   }
 
   const DEBATE_AGENTS = [
