@@ -48,10 +48,11 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 
 - **pnpm monorepo** with workspace references — all packages share a single lockfile and catalog for version pinning
 - **API proxy via Vite dev server** — frontend proxies `/api` → `http://localhost:8080` so no CORS issues in dev
-- **Public APIs only** — market data (CoinGecko, Yahoo Finance), news (RSS feeds), and Polymarket are all public; no API keys required
+- **Public APIs only** — market data (CoinGecko, Yahoo Finance), news (RSS feeds), Polymarket, alternative.me (F&G) are all free/public; no API keys required
 - **Drizzle push (not migrations)** — schema changes are applied via `drizzle-kit push` rather than migration files
 - **Typed HTTP errors** — `HttpError` class (`lib/http-error.ts`) with static helpers; Express error handler returns status-aware JSON
 - **Background scheduler** — `lib/scheduler.ts` runs `runTrainingCycle()` every 15 min (configurable via `SCHEDULER_INTERVAL_MS`); also called directly by `POST /lattice/train`. Starts on server boot, stops cleanly on SIGTERM/SIGINT
+- **In-memory TTL cache** — `artifacts/api-server/src/lib/cache.ts` wraps all external fetches (market prices 2 min, history 5 min, lattice runs 5 min, fear/greed 30 min, news 5 min); prevents external API rate limits
 
 ## Product
 
@@ -66,11 +67,15 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 
 | Method | Path                                  | Notes                                                                  |
 | ------ | ------------------------------------- | ---------------------------------------------------------------------- |
-| `POST` | `/api/lattice/run`                    | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response |
+| `POST` | `/api/lattice/run`                    | `{ symbol, timeframe, useV3? }` — v3 adds `beliefDynamics` to response; cached 5 min per symbol+tf |
 | `POST` | `/api/lattice/train`                  | Manually trigger a training cycle (same logic as the scheduler)        |
 | `GET`  | `/api/lattice/belief-history/:symbol` | `?limit=N` (default 50, max 200) — chronological conviction history    |
+| `GET`  | `/api/lattice/runs/:symbol`           | Last 50 lattice runs for a symbol (backtest history)                   |
+| `GET`  | `/api/lattice/leaderboard`            | Agent states ranked by reputation                                      |
+| `GET`  | `/api/market/fear-greed`              | Fear & Greed Index (alternative.me, cached 30 min)                     |
+| `GET`  | `/api/predictions/export`             | CSV download of all predictions (up to 500)                            |
 | `GET`  | `/api/healthz`                        | Returns `{ status, db, uptime, timestamp, scheduler }`                 |
-| `POST` | `/api/geo-impact`                     | `{ headline, description?, isBreaking? }` — returns full `ThreatClassification` (type, severity, lockdownRisk, economicDisruptionRisk, marketImpactScore, timeHorizon, affectedTickers, narrative) |
+| `POST` | `/api/geo-impact`                     | `{ headline, description?, isBreaking? }` — returns full `ThreatClassification` |
 
 ## User preferences
 

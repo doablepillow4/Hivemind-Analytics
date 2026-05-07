@@ -145,8 +145,11 @@ export async function runLattice(
   }
 
   if (closes.length < 5) {
-    closes = Array.from({ length: 40 }, (_, i) => 100 * (1 + Math.sin(i * 0.4) * 0.03));
-    currentPrice = 100;
+    const seed = currentPrice > 0 ? currentPrice : 100;
+    closes = Array.from(
+      { length: 40 },
+      (_, i) => seed * (1 + Math.sin(i * 0.4) * 0.03 + (Math.random() - 0.5) * 0.008),
+    );
   }
 
   const regime = detectRegime(closes);

@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { marketCache, TTL, getOrFetch } from "./cache";
 
 const STOCK_SYMBOLS = ["NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "SPY"];
 const CRYPTO_IDS: Record<string, { id: string; symbol: string; name: string }> = {
@@ -35,6 +36,15 @@ export function sanitizeSparkline(values: (number | null | undefined)[]): number
 }
 
 export async function fetchStockPrice(symbol: string) {
+  const cacheKey = `stock:price:${symbol}`;
+  const cached = marketCache.get<Awaited<ReturnType<typeof _fetchStockPriceRaw>>>(cacheKey);
+  if (cached) return cached;
+  const result = await _fetchStockPriceRaw(symbol);
+  marketCache.set(cacheKey, result, TTL.MARKET_PRICE);
+  return result;
+}
+
+async function _fetchStockPriceRaw(symbol: string) {
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
     const res = await fetch(url, {
@@ -98,6 +108,15 @@ export async function fetchStockPrice(symbol: string) {
 }
 
 export async function fetchCryptoPrices() {
+  const cacheKey = "crypto:prices:all";
+  const cached = marketCache.get<Awaited<ReturnType<typeof _fetchCryptoPricesRaw>>>(cacheKey);
+  if (cached) return cached;
+  const result = await _fetchCryptoPricesRaw();
+  marketCache.set(cacheKey, result, TTL.MARKET_PRICE);
+  return result;
+}
+
+async function _fetchCryptoPricesRaw() {
   try {
     const ids = Object.values(CRYPTO_IDS)
       .map((c) => c.id)
@@ -157,6 +176,12 @@ export async function fetchCryptoPrices() {
 }
 
 export async function fetchStockHistory(symbol: string, days = 30) {
+  return getOrFetch(marketCache, `stock:hist:${symbol}:${days}`, TTL.MARKET_HISTORY, () =>
+    _fetchStockHistoryRaw(symbol, days),
+  );
+}
+
+async function _fetchStockHistoryRaw(symbol: string, days = 30) {
   try {
     const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
     const interval = days <= 7 ? "60m" : "1d";
@@ -204,6 +229,12 @@ export async function fetchStockHistory(symbol: string, days = 30) {
 }
 
 export async function fetchCryptoHistory(coinId: string, days = 30) {
+  return getOrFetch(marketCache, `crypto:hist:${coinId}:${days}`, TTL.MARKET_HISTORY, () =>
+    _fetchCryptoHistoryRaw(coinId, days),
+  );
+}
+
+async function _fetchCryptoHistoryRaw(coinId: string, days = 30) {
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
     const res = await fetch(url, {

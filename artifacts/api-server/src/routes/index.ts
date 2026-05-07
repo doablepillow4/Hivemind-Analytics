@@ -7,11 +7,13 @@ import polymarketRouter from "./polymarket";
 import latticeRouter from "./lattice";
 import newsRouter from "./news";
 import geoImpactRouter from "./geo-impact";
+import fearGreedRouter from "./fear-greed";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(marketRouter);
+router.use(fearGreedRouter);
 router.use(predictionsRouter);
 router.use(simulatorRouter);
 router.use(polymarketRouter);

@@ -54,7 +54,12 @@ interface GeoImpactAnalysis {
 }
 
 // ─── Geo-impact API hook ──────────────────────────────────────────────────────
+const _geoCache = new Map<string, GeoImpactAnalysis>();
+
 async function fetchGeoImpact(item: NewsItem): Promise<GeoImpactAnalysis> {
+  const cacheKey = item.id ?? item.title.slice(0, 60);
+  if (_geoCache.has(cacheKey)) return _geoCache.get(cacheKey)!;
+
   const res = await fetch("/api/geo-impact", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -64,9 +69,12 @@ async function fetchGeoImpact(item: NewsItem): Promise<GeoImpactAnalysis> {
       category: item.category ?? "geopolitics",
       isBreaking: item.isBreaking ?? false,
     }),
+    signal: AbortSignal.timeout(8000),
   });
-  if (!res.ok) throw new Error("geo-impact failed");
-  return res.json() as Promise<GeoImpactAnalysis>;
+  if (!res.ok) throw new Error(`geo-impact failed: ${res.status}`);
+  const data = (await res.json()) as GeoImpactAnalysis;
+  _geoCache.set(cacheKey, data);
+  return data;
 }
 
 // ─── Threat type config ───────────────────────────────────────────────────────
@@ -534,10 +542,12 @@ function EmergingSignalRadar({
   // Fetch geo-impact analysis for each top signal
   const analysisResults = useQueries({
     queries: scored.map(({ item }) => ({
-      queryKey: ["geo-impact", item.id],
+      queryKey: ["geo-impact", item.id ?? item.title.slice(0, 40)],
       queryFn: () => fetchGeoImpact(item),
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      retry: 2,
+      retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 6000),
+      enabled: !!item.title,
     })),
   });
 

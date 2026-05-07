@@ -21,8 +21,8 @@ import {
   CRYPTO_ID_MAP,
 } from "../lib/market-data";
 import { db } from "@workspace/db";
-import { predictionsTable } from "@workspace/db";
-import { isNull } from "drizzle-orm";
+import { predictionsTable, latticeRunsTable, agentStatesTable } from "@workspace/db";
+import { isNull, eq, desc } from "drizzle-orm";
 import { runTrainingCycle } from "../lib/scheduler";
 import {
   getGeoMarketsForAsset,
@@ -30,6 +30,7 @@ import {
 } from "../lib/polymarket-cache";
 import { fetchPolymarketData, getFallbackMarkets } from "./polymarket";
 import { logger } from "../lib/logger";
+import { latticeCache, TTL } from "../lib/cache";
 
 const router: IRouter = Router();
 
@@ -41,10 +42,18 @@ router.post("/lattice/run", async (req, res): Promise<void> => {
   }
 
   const { symbol, timeframe = "7d", useV3 = false } = parsed.data;
+  const sym = symbol.toUpperCase();
 
   try {
+    const cacheKey = `lattice:run:${sym}:${timeframe}:${useV3 ? "v3" : "v2"}`;
+    const cached = latticeCache.get<object>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const [latticeResult, polyData] = await Promise.allSettled([
-      runLattice(symbol.toUpperCase(), timeframe, useV3),
+      runLattice(sym, timeframe, useV3),
       fetchPolymarketData(30).catch(() => getFallbackMarkets(20)),
     ]);
 
@@ -55,7 +64,7 @@ router.post("/lattice/run", async (req, res): Promise<void> => {
     const result = latticeResult.value;
     const markets = polyData.status === "fulfilled" ? polyData.value : getFallbackMarkets(20);
 
-    const geoMarkets = getGeoMarketsForAsset(symbol.toUpperCase(), markets);
+    const geoMarkets = getGeoMarketsForAsset(sym, markets);
     const polymarketIntel = geoMarkets.slice(0, 5).map((m) => ({
       headline: buildPolymarketHeadline(m),
       question: m.question,
@@ -71,7 +80,9 @@ router.post("/lattice/run", async (req, res): Promise<void> => {
       polymarketIntel: polymarketIntel.length > 0 ? polymarketIntel : null,
     };
 
-    res.json(RunLatticeResponse.parse(enrichedResult));
+    const parsed2 = RunLatticeResponse.parse(enrichedResult);
+    latticeCache.set(cacheKey, parsed2, TTL.LATTICE_RUN);
+    res.json(parsed2);
   } catch (err) {
     logger.error({ err, symbol }, "Lattice run failed");
     res.status(500).json({ error: "Lattice run failed" });
@@ -224,6 +235,69 @@ router.post("/lattice/train", async (_req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Lattice training failed");
     res.status(500).json({ error: "Training cycle failed" });
+  }
+});
+
+// ─── Backtest ─────────────────────────────────────────────────────────────────
+
+router.get("/lattice/runs/:symbol", async (req, res): Promise<void> => {
+  const symbol = (req.params.symbol ?? "").toUpperCase();
+  if (!symbol) {
+    res.status(400).json({ error: "symbol required" });
+    return;
+  }
+  try {
+    const rows = await db
+      .select()
+      .from(latticeRunsTable)
+      .where(eq(latticeRunsTable.symbol, symbol))
+      .orderBy(desc(latticeRunsTable.createdAt))
+      .limit(50);
+
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        symbol: r.symbol,
+        timeframe: r.timeframe,
+        regime: r.regime,
+        regimeScore: r.regimeScore,
+        finalDirection: r.finalDirection,
+        finalConfidence: r.finalConfidence,
+        hivemindScore: r.hivemindScore,
+        shapHive: r.shapHive,
+        shapAi: r.shapAi,
+        shapGeo: r.shapGeo,
+        agentConsensus: r.agentConsensus,
+        causalNarrative: r.causalNarrative,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    );
+  } catch (err) {
+    logger.error({ err, symbol }, "Backtest runs fetch failed");
+    res.status(500).json({ error: "Failed to fetch runs" });
+  }
+});
+
+// ─── Leaderboard ──────────────────────────────────────────────────────────────
+
+router.get("/lattice/leaderboard", async (_req, res): Promise<void> => {
+  try {
+    const dbStates = await getAllAgentStates();
+    const states = dbStates.length > 0 ? dbStates : getStaticAgentStates();
+
+    const leaderboard = states
+      .map((s) => ({
+        ...s,
+        accuracy: s.totalRuns > 0 ? s.correctRuns / s.totalRuns : null,
+        rank: 0,
+      }))
+      .sort((a, b) => b.reputation - a.reputation)
+      .map((s, i) => ({ ...s, rank: i + 1 }));
+
+    res.json(leaderboard);
+  } catch (err) {
+    logger.error({ err }, "Leaderboard fetch failed");
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
 

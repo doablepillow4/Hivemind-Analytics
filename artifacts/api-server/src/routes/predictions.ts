@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { predictionsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { desc, isNull, isNotNull } from "drizzle-orm";
 import {
   GetPredictionsResponse,
   CreatePredictionBody,
@@ -98,6 +98,40 @@ router.post("/predictions", async (req, res): Promise<void> => {
 router.get("/predictions/summary", async (_req, res): Promise<void> => {
   const summary = await getPredictionsSummary();
   res.json(GetPredictionsSummaryResponse.parse(summary));
+});
+
+router.get("/predictions/export", async (_req, res): Promise<void> => {
+  try {
+    const all = await db
+      .select()
+      .from(predictionsTable)
+      .orderBy(desc(predictionsTable.createdAt))
+      .limit(500);
+
+    const rows = [
+      ["id", "symbol", "direction", "currentPrice", "targetPrice", "confidence", "timeframe", "outcome", "createdAt", "resolvedAt"].join(","),
+      ...all.map((p) =>
+        [
+          p.id,
+          p.symbol,
+          p.direction,
+          p.currentPrice.toFixed(4),
+          p.targetPrice.toFixed(4),
+          p.confidence.toFixed(4),
+          p.timeframe,
+          p.outcome ?? "pending",
+          p.createdAt.toISOString(),
+          p.resolvedAt?.toISOString() ?? "",
+        ].join(","),
+      ),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=hivemind-predictions.csv");
+    res.send(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Export failed" });
+  }
 });
 
 export default router;

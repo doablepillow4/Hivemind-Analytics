@@ -46,12 +46,17 @@ export function runMetaAgent(
     probability > 0.54 ? "bullish" : probability < 0.46 ? "bearish" : "neutral";
   const confidence = synthesisToken.confidence;
 
-  const days =
-    { "15m": 1 / 96, "30m": 1 / 48, "1h": 1 / 24, "6h": 0.25, "12h": 0.5, "1d": 1, "7d": 7 }[
-      timeframe
-    ] ?? 30;
+  const TIMEFRAME_DAYS: Record<string, number> = {
+    "15m": 1 / 96, "30m": 1 / 48, "1h": 1 / 24, "6h": 0.25, "12h": 0.5,
+    "1d": 1, "3d": 3, "7d": 7, "14d": 14, "1w": 7, "2w": 14, "30d": 30, "1M": 30,
+  };
+  const days = TIMEFRAME_DAYS[timeframe] ?? 7;
+
+  const rawMovePct = regime.volatility * Math.sqrt(days / 252);
+  const convictionBoost = 1 + Math.abs(synthesisToken.probability - 0.5) * 0.6;
   const expectedMovePct =
-    regime.volatility * Math.sqrt(days / 252) * (direction === "neutral" ? 0 : 1);
+    Math.min(0.40, rawMovePct * convictionBoost) * (direction === "neutral" ? 0 : 1);
+
   const targetPrice =
     direction === "bullish"
       ? currentPrice * (1 + expectedMovePct)

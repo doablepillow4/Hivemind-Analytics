@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   useRunLattice,
   useGetLatticeAgents,
@@ -38,6 +39,9 @@ import {
   RefreshCw,
   BarChart3,
   Flame,
+  Download,
+  Award,
+  Clock,
 } from "lucide-react";
 import {
   ComposedChart,
@@ -673,6 +677,265 @@ function ConvergenceChart({ tokens }: { tokens: BeliefToken[] }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Fear & Greed Widget ──────────────────────────────────────────────────────
+interface FearGreedData {
+  value: number;
+  valueText: string;
+  timestamp: string;
+  previousValue: number;
+  previousValueText: string;
+  trend: "rising" | "falling" | "stable";
+}
+
+function FearGreedWidget() {
+  const { data, isLoading } = useQuery<FearGreedData>({
+    queryKey: ["fear-greed"],
+    queryFn: () => fetch("/api/market/fear-greed").then((r) => r.json()),
+    staleTime: 30 * 60 * 1000,
+    refetchInterval: 30 * 60 * 1000,
+  });
+
+  if (isLoading || !data) {
+    return (
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3 animate-pulse h-20" />
+    );
+  }
+
+  const pct = data.value;
+  const color =
+    pct <= 24
+      ? "text-red-400"
+      : pct <= 44
+        ? "text-orange-400"
+        : pct <= 55
+          ? "text-amber-400"
+          : pct <= 74
+            ? "text-emerald-400"
+            : "text-green-400";
+  const barColor =
+    pct <= 24
+      ? "from-red-600 to-red-400"
+      : pct <= 44
+        ? "from-orange-600 to-orange-400"
+        : pct <= 55
+          ? "from-amber-600 to-amber-400"
+          : pct <= 74
+            ? "from-emerald-600 to-emerald-400"
+            : "from-green-600 to-green-400";
+  const trendIcon =
+    data.trend === "rising" ? "↑" : data.trend === "falling" ? "↓" : "→";
+  const trendColor =
+    data.trend === "rising"
+      ? "text-red-400"
+      : data.trend === "falling"
+        ? "text-emerald-400"
+        : "text-muted-foreground";
+
+  return (
+    <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
+      <div className={`h-0.5 w-full bg-gradient-to-r ${barColor} to-transparent`} />
+      <CardContent className="p-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest mb-0.5">
+              Fear & Greed Index
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className={`font-display text-2xl font-800 ${color}`}>{pct}</span>
+              <span className={`text-[11px] font-mono font-700 ${color}`}>{data.valueText}</span>
+              <span className={`text-[10px] font-mono ${trendColor} ml-1`}>
+                {trendIcon} {Math.abs(pct - data.previousValue) > 0 ? `${Math.abs(pct - data.previousValue)} pts` : ""}
+              </span>
+            </div>
+            <div className="text-[9px] font-mono text-muted-foreground mt-0.5">
+              prev: {data.previousValue} ({data.previousValueText})
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 flex-1 max-w-[120px]">
+            <div className="flex justify-between text-[8px] font-mono text-muted-foreground/50">
+              <span>Fear</span><span>Greed</span>
+            </div>
+            <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden border border-white/[0.06]">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[8px] font-mono text-muted-foreground/40">
+              <span>0</span><span>50</span><span>100</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Performance Panel ────────────────────────────────────────────────────────
+interface LatticeRun {
+  id: string;
+  symbol: string;
+  timeframe: string;
+  regime: string;
+  finalDirection: string;
+  finalConfidence: number;
+  hivemindScore: number;
+  agentConsensus: number;
+  createdAt: string;
+}
+
+function PerformancePanel({ symbol }: { symbol: string }) {
+  const { data: runs, isLoading } = useQuery<LatticeRun[]>({
+    queryKey: ["lattice-runs", symbol],
+    queryFn: () => fetch(`/api/lattice/runs/${symbol}`).then((r) => r.json()),
+    enabled: !!symbol,
+    staleTime: 60 * 1000,
+  });
+
+  function handleExport() {
+    window.open("/api/predictions/export", "_blank");
+  }
+
+  if (!symbol) {
+    return (
+      <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
+        <CardContent className="p-4 text-center py-8">
+          <Clock className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-[11px] text-muted-foreground">Select a symbol to view run history</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm">
+        <CardContent className="p-4 space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 rounded-lg bg-white/[0.03] border border-white/[0.05] animate-pulse" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const runList = Array.isArray(runs) ? runs : [];
+
+  return (
+    <Card className="bg-card/60 border-white/[0.07] backdrop-blur-sm overflow-hidden">
+      <div className="h-0.5 w-full bg-gradient-to-r from-primary/60 via-purple-500/30 to-transparent" />
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Award className="w-3.5 h-3.5 text-primary" />
+            <div className="data-label">Run History · {symbol}</div>
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {runList.length} runs stored
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-7 text-[10px] font-mono border-white/10 text-muted-foreground hover:text-white"
+            onClick={handleExport}
+          >
+            <Download className="w-3 h-3" />
+            Export CSV
+          </Button>
+        </div>
+
+        {runList.length === 0 ? (
+          <div className="text-center py-6 border border-dashed border-white/10 rounded-xl">
+            <Clock className="w-4 h-4 text-muted-foreground/20 mx-auto mb-1.5" />
+            <p className="text-[11px] text-muted-foreground">No runs yet for {symbol}</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-0.5">Run the Lattice above to generate predictions</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {runList.slice(0, 10).map((run) => {
+              const dir = run.finalDirection;
+              const dirColor =
+                dir === "bullish"
+                  ? "text-emerald-400"
+                  : dir === "bearish"
+                    ? "text-red-400"
+                    : "text-amber-400";
+              const dirIcon = dir === "bullish" ? "↑" : dir === "bearish" ? "↓" : "→";
+              const regimeColor =
+                run.regime === "calm"
+                  ? "text-emerald-400/70"
+                  : run.regime === "volatile"
+                    ? "text-amber-400/70"
+                    : "text-red-400/70";
+
+              let timeAgo = "—";
+              try {
+                const ms = Date.now() - new Date(run.createdAt).getTime();
+                const h = Math.floor(ms / 3_600_000);
+                const m = Math.floor((ms % 3_600_000) / 60_000);
+                timeAgo = h > 0 ? `${h}h ${m}m ago` : `${m}m ago`;
+              } catch {}
+
+              return (
+                <div
+                  key={run.id}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.05]"
+                >
+                  <span className={`text-[13px] font-mono font-700 ${dirColor} w-4 shrink-0`}>
+                    {dirIcon}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] font-mono font-600 ${dirColor} uppercase`}>
+                        {dir}
+                      </span>
+                      <span className={`text-[9px] font-mono ${regimeColor}`}>
+                        {run.regime}
+                      </span>
+                      <span className="text-[9px] font-mono text-muted-foreground/40">
+                        {run.timeframe}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] font-mono text-white">
+                      {(run.finalConfidence * 100).toFixed(0)}% conf
+                    </div>
+                    <div className="text-[9px] font-mono text-muted-foreground/50">
+                      {timeAgo}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <div className="text-[10px] font-mono text-primary/80 font-600">
+                      {run.hivemindScore.toFixed(0)}
+                    </div>
+                    <div className="text-[8px] font-mono text-muted-foreground/40">HPL</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Run Loading Skeleton ─────────────────────────────────────────────────────
+function LatticeRunSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="h-32 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+      <div className="h-48 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-36 rounded-xl bg-white/[0.03] border border-white/[0.05]" />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1563,6 +1826,9 @@ export default function Lattice() {
         </>
       )}
 
+      {/* Fear & Greed Index */}
+      <FearGreedWidget />
+
       {/* Run button */}
       <Button
         className="w-full gap-2 h-11 font-mono"
@@ -1592,7 +1858,12 @@ export default function Lattice() {
 
       {symbol && <ConvictionMomentumChart symbol={symbol} latestRunId={result?.runId} />}
 
+      {runLattice.isPending && !result && <LatticeRunSkeleton />}
+
       {result && <DebateView result={result} upvotes={agentUpvotes} onUpvote={upvoteAgent} />}
+
+      {/* Performance / run history */}
+      {symbol && <PerformancePanel symbol={symbol} />}
 
       {/* Self-improvement training */}
       <TrainingPanel />
