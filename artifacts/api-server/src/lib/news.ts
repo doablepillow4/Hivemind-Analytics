@@ -24,6 +24,8 @@ const FEED_SOURCES = [
   { name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
   { name: "Guardian", url: "https://www.theguardian.com/world/rss" },
   { name: "NPR World", url: "https://feeds.npr.org/1004/rss.xml" },
+  { name: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+  { name: "Sky News", url: "https://feeds.skynews.com/feeds/rss/world.xml" },
 ];
 
 const BEARISH_KW = [
@@ -202,7 +204,7 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
   all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   // Ensure we always have at least some news, even if all feeds fail
-  const items = all.length > 0 ? all.slice(0, 24) : getFallbackNews();
+  const items = all.length > 0 ? all.slice(0, 30) : getFallbackNews();
 
   // Simple deduplication based on title
   const uniqueItems = [];
@@ -215,7 +217,7 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
     }
   }
 
-  _cache = { items: uniqueItems, expiry: Date.now() + 5 * 60 * 1000 };
+  _cache = { items: uniqueItems, expiry: Date.now() + 3 * 60 * 1000 };
   return uniqueItems;
 }
 

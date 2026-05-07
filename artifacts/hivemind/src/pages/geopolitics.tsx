@@ -530,7 +530,7 @@ export default function Geopolitics() {
   const { data: polymarketData, isLoading: loadingMarkets } = useGetPolymarketMarkets(undefined, {
     query: {
       queryKey: ["polymarket-markets"],
-      refetchInterval: 120000,
+      refetchInterval: 60000,
       placeholderData: PLACEHOLDER_MARKETS,
     },
   });

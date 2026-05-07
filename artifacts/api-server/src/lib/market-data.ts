@@ -113,29 +113,45 @@ export async function fetchCryptoPrices() {
       const ids = Object.values(CRYPTO_IDS)
         .map((c) => c.id)
         .join(",");
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`;
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=true&price_change_percentage=24h&order=market_cap_desc`;
       const res = await fetch(url, {
         headers: { Accept: "application/json" },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
-      const data = await res.json();
+      const data = (await res.json()) as Array<{
+        id: string;
+        name: string;
+        current_price: number;
+        price_change_24h: number;
+        price_change_percentage_24h: number;
+        total_volume: number;
+        market_cap: number;
+        sparkline_in_7d?: { price: number[] };
+      }>;
+
+      const byId = new Map(data.map((d) => [d.id, d]));
 
       return Object.entries(CRYPTO_IDS).map(([sym, info]) => {
-        const d = data[info.id];
-        if (!d || !d.usd) return generateFallbackCryptoEntry(sym);
-        const price = safeNum(d.usd);
-        const changePercent = safeNum(d.usd_24h_change);
+        const d = byId.get(info.id);
+        if (!d || !d.current_price) return generateFallbackCryptoEntry(sym);
+        const price = safeNum(d.current_price);
+        const changePercent = safeNum(d.price_change_percentage_24h);
+        const rawSparkline = d.sparkline_in_7d?.price ?? [];
+        const sparkline =
+          rawSparkline.length >= 15
+            ? sanitizeSparkline(rawSparkline.slice(-15))
+            : generateSparkline(price, changePercent);
         return {
           symbol: sym,
           name: info.name,
           price,
-          change: safeNum((price * changePercent) / 100),
+          change: safeNum(d.price_change_24h),
           changePercent,
-          volume: safeNum(d.usd_24h_vol),
-          marketCap: safeNum(d.usd_market_cap),
+          volume: safeNum(d.total_volume),
+          marketCap: safeNum(d.market_cap),
           type: "crypto" as const,
-          sparkline: generateSparkline(price, changePercent),
+          sparkline,
           updatedAt: new Date().toISOString(),
         };
       });

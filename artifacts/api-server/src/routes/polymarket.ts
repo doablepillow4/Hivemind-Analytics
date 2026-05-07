@@ -35,7 +35,7 @@ type MarketItem = {
 };
 
 let _cache: { data: MarketItem[]; expiresAt: number } | null = null;
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TTL = 2 * 60 * 1000;
 
 function eventsToMarkets(events: PolymarketEvent[]): MarketItem[] {
   const markets: MarketItem[] = [];
