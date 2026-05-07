@@ -1,20 +1,22 @@
 {
   "name": "Hivemind Predictor (testai)",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/postgresql:1": {}
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
   "forwardPorts": [5173, 8080, 5432],
+
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
-  "postStartCommand": "echo '✅ Codespace ready!'",
+
   "customizations": {
     "vscode": {
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-typescript-next"
+        "ms-vscode.vscode-typescript-next",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg"
       ]
     }
   }
