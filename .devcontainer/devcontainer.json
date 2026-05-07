@@ -7,7 +7,7 @@
   },
   "forwardPorts": [5173, 8080, 5432],
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
-  "postStartCommand": "echo '✅ Codespace ready! Use Terminal to run: pnpm dev:all (if available) or start backend + frontend manually'",
+  "postStartCommand": "echo '✅ Codespace ready!'",
   "customizations": {
     "vscode": {
       "extensions": [
