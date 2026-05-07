@@ -1,4 +1,3 @@
-cat > .devcontainer/devcontainer.json << 'EOF'
 {
   "name": "Hivemind Predictor (testai)",
   "dockerComposeFile": "docker-compose.yml",
@@ -21,4 +20,3 @@ cat > .devcontainer/devcontainer.json << 'EOF'
     }
   }
 }
-EOF
