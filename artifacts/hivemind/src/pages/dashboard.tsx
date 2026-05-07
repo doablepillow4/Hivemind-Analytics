@@ -62,7 +62,7 @@ const PLACEHOLDER_SUMMARY: PredictionsSummary = {
   averageConfidence: 0,
   recentAccuracy: 0,
   improvementTrend: 0,
-  bySymbol: {},
+  bySymbol: [],
 };
 
 export default function Dashboard() {

@@ -15,11 +15,13 @@ A market intelligence dashboard that aggregates real-time financial data, geopol
 
 **Workflows (defined in `.replit`, auto-start on import from GitHub):**
 
-- `API Server` → `$REPLIT_ARTIFACT_ROUTER` — starts api-server on port 8080 and serves the built frontend as static files; routes `/api` to the api-server and `/` to `artifacts/hivemind/dist/public` (port 8000, console)
-- `Start application` → `pnpm install --frozen-lockfile && PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hivemind run dev` (port 5000, webview)
+- `Start application` — installs deps then starts Vite dev server on port 5000 (webview)
+  `HUSKY=0 pnpm install --no-frozen-lockfile && PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hivemind run dev`
+- `API Server` — installs deps, builds the server, then runs it on port 8000 (console)
+  `HUSKY=0 pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && PORT=8000 node --enable-source-maps artifacts/api-server/dist/index.mjs`
 - Both run in parallel under the `Project` parent workflow (the Run button)
 
-Note: `Start application` installs deps on startup (takes ~2 s). `API Server` uses the pre-built frontend (run `pnpm --filter @workspace/hivemind run build` to rebuild after code changes).
+Both workflows are fully self-sufficient — a fresh import from GitHub works with no manual steps. `dist/` is git-ignored so the build step in `API Server` is required on every cold start.
 
 ## Stack
 
@@ -40,7 +42,7 @@ lib/
   api-zod/      Zod schemas (generated)
   api-client-react/ React Query hooks
   db/           Drizzle schema + client, drizzle.config.ts
-scripts/        post-merge.sh (runs pnpm install + db push)
+scripts/        post-merge.sh (runs pnpm install + db push + api-server build)
 ```
 
 - DB schema: `lib/db/src/schema/` (`predictions.ts`, `lattice.ts`)
@@ -50,7 +52,7 @@ scripts/        post-merge.sh (runs pnpm install + db push)
 ## Architecture decisions
 
 - **pnpm monorepo** with workspace references — all packages share a single lockfile and catalog for version pinning
-- **API proxy via Vite dev server** — frontend proxies `/api` → `http://localhost:8080` so no CORS issues in dev
+- **API proxy via Vite dev server** — frontend proxies `/api` → `http://localhost:8000` so no CORS issues in dev
 - **Public APIs only** — market data (CoinGecko, Yahoo Finance), news (RSS feeds), Polymarket, alternative.me (F&G) are all free/public; no API keys required
 - **Drizzle push (not migrations)** — schema changes are applied via `drizzle-kit push` rather than migration files
 - **Typed HTTP errors** — `HttpError` class (`lib/http-error.ts`) with static helpers; Express error handler returns status-aware JSON
