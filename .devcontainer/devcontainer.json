@@ -6,7 +6,7 @@
     "ghcr.io/devcontainers/features/postgresql:1": {}
   },
   "forwardPorts": [5173, 8080, 5432],
-  "postCreateCommand": "pnpm install",
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
   "postStartCommand": "echo '✅ Codespace ready! Use Terminal to run: pnpm dev:all (if available) or start backend + frontend manually'",
   "customizations": {
     "vscode": {
