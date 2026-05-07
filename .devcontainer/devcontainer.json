@@ -1,8 +1,9 @@
+cat > .devcontainer/devcontainer.json << 'EOF'
 {
   "name": "Hivemind Predictor (testai)",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/testai",
 
   "forwardPorts": [5173, 8080, 5432],
 
@@ -14,10 +15,10 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-typescript-next",
         "mtxr.sqltools",
         "mtxr.sqltools-driver-pg"
       ]
     }
   }
 }
+EOF
