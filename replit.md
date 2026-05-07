@@ -13,13 +13,13 @@ A market intelligence dashboard that aggregates real-time financial data, geopol
 
 **Required env vars:** `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (all set by Replit DB provisioning — no extra keys needed)
 
-**Workflows (platform-managed via artifacts):**
+**Workflows (defined in `.replit`, auto-start on import from GitHub):**
 
-- `artifacts/api-server: API Server` → `pnpm --filter @workspace/api-server run dev` (port 8080, console)
-- `artifacts/hivemind: web` → `pnpm --filter @workspace/hivemind run dev` (port injected by Replit, webview)
-- `artifacts/mockup-sandbox: Component Preview Server` → `pnpm --filter @workspace/mockup-sandbox run dev`
+- `API Server` → `pnpm install --frozen-lockfile && pnpm --filter @workspace/db run push && PORT=8080 pnpm --filter @workspace/api-server run dev` (port 8080, console)
+- `Start application` → `pnpm install --frozen-lockfile && PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hivemind run dev` (port 5000, webview)
+- Both run in parallel under the `Project` parent workflow (the Run button)
 
-Note: Replit injects `PORT` and `BASE_PATH` automatically for artifact workflows. Do not add manual `Start application` / `API Server` workflows — they conflict with the artifact-managed ones.
+Note: Each workflow installs deps and pushes the DB schema on startup, so importing from GitHub and clicking Run is all that's needed.
 
 ## Stack
 
