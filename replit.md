@@ -13,15 +13,14 @@ A market intelligence dashboard that aggregates real-time financial data, geopol
 
 **Required env vars:** `DATABASE_URL`, `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (all set by Replit DB provisioning — no extra keys needed)
 
-**Workflows (defined in `.replit`, auto-start on import from GitHub):**
+**Workflows (managed by the Replit artifact system via `artifact.toml`):**
 
-- `Start application` — installs deps then starts Vite dev server on port 5000 (webview)
-  `HUSKY=0 pnpm install --no-frozen-lockfile && PORT=5000 BASE_PATH=/ pnpm --filter @workspace/hivemind run dev`
-- `API Server` — installs deps, builds the server, then runs it on port 8000 (console)
-  `HUSKY=0 pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && PORT=8000 node --enable-source-maps artifacts/api-server/dist/index.mjs`
-- Both run in parallel under the `Project` parent workflow (the Run button)
+- `artifacts/hivemind: web` — starts Vite dev server on port 5000 (webview)
+  `pnpm --filter @workspace/hivemind run dev`
+- `artifacts/api-server: API Server` — builds then starts the API server on port 8080 (console)
+  `pnpm --filter @workspace/api-server run dev` (which runs build + start)
 
-Both workflows are fully self-sufficient — a fresh import from GitHub works with no manual steps. `dist/` is git-ignored so the build step in `API Server` is required on every cold start.
+Both workflows auto-start on import. The API server build is included in `pnpm run dev` so `dist/` being git-ignored is not a problem. Vite proxies `/api` → `http://localhost:8080`.
 
 ## Stack
 
