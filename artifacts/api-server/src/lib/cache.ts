@@ -3,7 +3,7 @@ interface CacheEntry<T> {
   expiry: number;
 }
 
-class TTLCache {
+export class TTLCache {
   private store = new Map<string, CacheEntry<unknown>>();
   private maxSize: number;
 

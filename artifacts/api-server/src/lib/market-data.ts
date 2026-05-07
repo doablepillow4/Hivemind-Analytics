@@ -108,71 +108,42 @@ async function _fetchStockPriceRaw(symbol: string) {
 }
 
 export async function fetchCryptoPrices() {
-  const cacheKey = "crypto:prices:all";
-  const cached = marketCache.get<Awaited<ReturnType<typeof _fetchCryptoPricesRaw>>>(cacheKey);
-  if (cached) return cached;
-  const result = await _fetchCryptoPricesRaw();
-  marketCache.set(cacheKey, result, TTL.MARKET_PRICE);
-  return result;
-}
-
-async function _fetchCryptoPricesRaw() {
-  try {
-    const ids = Object.values(CRYPTO_IDS)
-      .map((c) => c.id)
-      .join(",");
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`;
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
-    const data = (await res.json()) as Record<
-      string,
-      {
-        usd?: number | null;
-        usd_24h_change?: number | null;
-        usd_24h_vol?: number | null;
-        usd_market_cap?: number | null;
-      }
-    >;
-
-    const results = [];
-    for (const [sym, info] of Object.entries(CRYPTO_IDS)) {
-      const d = data[info.id];
-      if (!d) continue;
-
-      const price = safeNum(d.usd);
-      if (price <= 0) {
-        logger.warn(
-          { sym, id: info.id },
-          "CoinGecko returned invalid price, skipping to fallback entry",
-        );
-        results.push(generateFallbackCryptoEntry(sym));
-        continue;
-      }
-
-      const changePercent = safeNum(d.usd_24h_change);
-      const change = safeNum((price * changePercent) / 100);
-
-      results.push({
-        symbol: sym,
-        name: info.name,
-        price,
-        change,
-        changePercent,
-        volume: safeNum(d.usd_24h_vol),
-        marketCap: safeNum(d.usd_market_cap),
-        type: "crypto" as const,
-        sparkline: generateSparkline(price, changePercent),
-        updatedAt: new Date().toISOString(),
+  return getOrFetch(marketCache, "crypto:prices:all", TTL.MARKET_PRICE, async () => {
+    try {
+      const ids = Object.values(CRYPTO_IDS)
+        .map((c) => c.id)
+        .join(",");
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`;
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
       });
+      if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
+      const data = await res.json();
+
+      return Object.entries(CRYPTO_IDS).map(([sym, info]) => {
+        const d = data[info.id];
+        if (!d || !d.usd) return generateFallbackCryptoEntry(sym);
+        const price = safeNum(d.usd);
+        const changePercent = safeNum(d.usd_24h_change);
+        return {
+          symbol: sym,
+          name: info.name,
+          price,
+          change: safeNum((price * changePercent) / 100),
+          changePercent,
+          volume: safeNum(d.usd_24h_vol),
+          marketCap: safeNum(d.usd_market_cap),
+          type: "crypto" as const,
+          sparkline: generateSparkline(price, changePercent),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+    } catch (err) {
+      logger.warn({ err }, "Failed to fetch crypto prices, using fallback");
+      return generateFallbackCryptoPrices();
     }
-    return results;
-  } catch (err) {
-    logger.warn({ err }, "Failed to fetch crypto prices, using fallback");
-    return generateFallbackCryptoPrices();
-  }
+  });
 }
 
 export async function fetchStockHistory(symbol: string, days = 30) {

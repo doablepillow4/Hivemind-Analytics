@@ -154,7 +154,13 @@ export async function runLattice(
 
   const regime = detectRegime(closes);
   logger.debug(
-    { symbol, runId, regime: regime.regime, regimeScore: regime.regimeScore, volatility: regime.volatility },
+    {
+      symbol,
+      runId,
+      regime: regime.regime,
+      regimeScore: regime.regimeScore,
+      volatility: regime.volatility,
+    },
     "HPL regime detected",
   );
 
@@ -238,12 +244,23 @@ export async function runLattice(
   // ─── Round 1: Hypothesis agents ────────────────────────────────────────────
   logger.debug({ symbol, runId, round: 1 }, "HPL hypothesis round started");
 
-  const momToken = momentumAgent(features, regime, [hiveToken.id], symbol, timeframe);
-  const meanToken = meanReversionAgent(features, regime, [hiveToken.id], symbol, timeframe);
-  const volToken = volRegimeAgent(features, regime, [hiveToken.id], symbol, timeframe);
-  const hiveWisToken = hiveWisdomAgent(hive, [hiveToken.id], symbol, timeframe);
+  // Lightweight mode: reduce default agent count for Replit free tier
+  const hypothesisTokens = [];
 
-  const hypothesisTokens = [momToken, meanToken, volToken, hiveWisToken];
+  // Always include hive signal as it's cheap and high signal
+  hypothesisTokens.push(hiveWisdomAgent(hive, [hiveToken.id], symbol, timeframe));
+
+  // Choose 1-2 additional technical agents based on regime to save resources
+  if (regime.regime === "calm") {
+    hypothesisTokens.push(momentumAgent(features, regime, [hiveToken.id], symbol, timeframe));
+  } else {
+    hypothesisTokens.push(meanReversionAgent(features, regime, [hiveToken.id], symbol, timeframe));
+  }
+
+  // Optional: only add volRegimeAgent if volatility is elevated
+  if (regime.volatility > 0.3) {
+    hypothesisTokens.push(volRegimeAgent(features, regime, [hiveToken.id], symbol, timeframe));
+  }
 
   logger.info(
     {
@@ -264,9 +281,10 @@ export async function runLattice(
     persistAgentRun(t.agentType).catch(() => {});
   }
 
-  // ─── Round 2: Critique agents ───────────────────────────────────────────────
+  // ─── Round 2: Critique agents (Simplified for Efficiency) ──────────────────
   logger.debug({ symbol, runId, round: 2 }, "HPL critique round started");
 
+  // Only run Devil's Advocate to save resources, skip Tail Risk unless in Crisis
   const devilResult = runDevilsAdvocate(
     hypothesisTokens,
     features,
@@ -276,24 +294,27 @@ export async function runLattice(
     timeframe,
   );
 
-  const tailResult = runTailRiskAgent(
-    devilResult.adjustedProb,
-    hive,
-    regime,
-    devilResult.tokens.map((t) => t.id),
-    symbol,
-    timeframe,
-    newsContext,
-  );
+  const critiqueTokens = [...devilResult.tokens];
+
+  if (regime.regime === "crisis") {
+    const tailResult = runTailRiskAgent(
+      devilResult.adjustedProb,
+      hive,
+      regime,
+      devilResult.tokens.map((t) => t.id),
+      symbol,
+      timeframe,
+      newsContext,
+    );
+    critiqueTokens.push(...tailResult.tokens);
+  }
 
   logger.info(
     {
       symbol,
       runId,
       round: 2,
-      devilAdjustment: devilResult.adjustedProb.toFixed(4),
-      tailRiskTokens: tailResult.tokens.length,
-      debateRounds: [...devilResult.rounds, ...tailResult.rounds].length,
+      critiqueCount: critiqueTokens.length,
     },
     "HPL critique round complete",
   );
@@ -302,7 +323,6 @@ export async function runLattice(
   logger.debug({ symbol, runId, round: 3 }, "HPL synthesis started");
 
   const agentReputations = await getAgentReputations();
-  const critiqueTokens = [...devilResult.tokens, ...tailResult.tokens];
   const synthesis = synthesize(hypothesisTokens, critiqueTokens, agentReputations);
 
   logger.info(
@@ -407,7 +427,10 @@ export async function runLattice(
         "HPL-HPA v3 belief dynamics computed",
       );
     } catch (err) {
-      logger.warn({ err, symbol, runId }, "v3 belief dynamics failed — result returned without dynamics");
+      logger.warn(
+        { err, symbol, runId },
+        "v3 belief dynamics failed — result returned without dynamics",
+      );
     }
   }
 

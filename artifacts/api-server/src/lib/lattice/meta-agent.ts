@@ -47,15 +47,31 @@ export function runMetaAgent(
   const confidence = synthesisToken.confidence;
 
   const TIMEFRAME_DAYS: Record<string, number> = {
-    "15m": 1 / 96, "30m": 1 / 48, "1h": 1 / 24, "6h": 0.25, "12h": 0.5,
-    "1d": 1, "3d": 3, "7d": 7, "14d": 14, "1w": 7, "2w": 14, "30d": 30, "1M": 30,
+    "15m": 1 / 96,
+    "30m": 1 / 48,
+    "1h": 1 / 24,
+    "6h": 0.25,
+    "12h": 0.5,
+    "1d": 1,
+    "3d": 3,
+    "7d": 7,
+    "14d": 14,
+    "1w": 7,
+    "2w": 14,
+    "30d": 30,
+    "1M": 30,
   };
   const days = TIMEFRAME_DAYS[timeframe] ?? 7;
 
-  const rawMovePct = regime.volatility * Math.sqrt(days / 252);
-  const convictionBoost = 1 + Math.abs(synthesisToken.probability - 0.5) * 0.6;
+  // Fix: use more realistic price targets anchored to current market data
+  const volAdjustedDays = Math.sqrt(days / 252);
+  const cappedVol = Math.min(regime.volatility, 0.5); // Cap volatility for target calculation
+  const convictionBoost = 1 + Math.abs(synthesisToken.probability - 0.5) * 0.4;
+
+  // Cap expected move at 15% for standard timeframes to avoid unrealistic targets
   const expectedMovePct =
-    Math.min(0.40, rawMovePct * convictionBoost) * (direction === "neutral" ? 0 : 1);
+    Math.min(0.15, cappedVol * volAdjustedDays * convictionBoost) *
+    (direction === "neutral" ? 0 : 1);
 
   const targetPrice =
     direction === "bullish"

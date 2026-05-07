@@ -137,7 +137,12 @@ export async function generatePrediction(symbol: string, timeframe = "7d", curre
 
   const days = timeframe === "1d" ? 1 : timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 7;
   const volatility = computeVolatility(closes);
-  const expectedMove = currentPrice * volatility * Math.sqrt(days / 252);
+  // Normalize expected move using a regime-aware scaling (max 15% for 7d)
+  const volAdjustedDays = Math.sqrt(days / 252);
+  const cappedVol = Math.min(volatility, 0.6); // Cap annualized vol at 60% for target calc
+  const moveMultiplier = cappedVol * volAdjustedDays;
+  const expectedMove = currentPrice * Math.min(moveMultiplier, 0.15);
+
   const targetPrice =
     direction === "bullish"
       ? currentPrice + expectedMove

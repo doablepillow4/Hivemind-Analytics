@@ -87,9 +87,17 @@ function classifyCategory(text: string): string {
     )
   )
     return "pandemic";
-  if (/hospital|patient|health|medical|vaccine|vaccination|treatment|drug approval|clinical trial/.test(t))
+  if (
+    /hospital|patient|health|medical|vaccine|vaccination|treatment|drug approval|clinical trial/.test(
+      t,
+    )
+  )
     return "health";
-  if (/war|conflict|attack|military|troops|missile|bomb|nuclear|weapon|drone|soldier|airstrike/.test(t))
+  if (
+    /war|conflict|attack|military|troops|missile|bomb|nuclear|weapon|drone|soldier|airstrike/.test(
+      t,
+    )
+  )
     return "conflict";
   if (/election|president|prime minister|government|congress|parliament|vote|senator/.test(t))
     return "politics";
@@ -145,10 +153,10 @@ function parseRSS(xml: string, sourceName: string): NewsItem[] {
     const isBreaking = Date.now() - new Date(publishedAt).getTime() < 2 * 60 * 60 * 1000;
     const { sentiment } = scoreSentiment(title + " " + desc);
     const category = classifyCategory(title + " " + desc);
-    const idKey = Buffer.from(title.slice(0, 24))
+    const idKey = Buffer.from(title.slice(0, 32))
       .toString("base64")
       .replace(/[^a-zA-Z0-9]/g, "")
-      .slice(0, 12);
+      .slice(0, 16);
 
     items.push({
       id: `${sourceName.toLowerCase().replace(/\s/g, "-")}-${idKey}`,
@@ -193,9 +201,22 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
 
   all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
+  // Ensure we always have at least some news, even if all feeds fail
   const items = all.length > 0 ? all.slice(0, 24) : getFallbackNews();
-  _cache = { items, expiry: Date.now() + 5 * 60 * 1000 };
-  return items;
+
+  // Simple deduplication based on title
+  const uniqueItems = [];
+  const seenTitles = new Set();
+  for (const item of items) {
+    const normalizedTitle = item.title.toLowerCase().trim();
+    if (!seenTitles.has(normalizedTitle)) {
+      seenTitles.add(normalizedTitle);
+      uniqueItems.push(item);
+    }
+  }
+
+  _cache = { items: uniqueItems, expiry: Date.now() + 5 * 60 * 1000 };
+  return uniqueItems;
 }
 
 const SYMBOL_KEYWORDS: Record<string, string[]> = {
@@ -238,11 +259,12 @@ export async function getNewsContextForSymbol(symbol: string): Promise<NewsConte
 }
 
 function buildNewsContext(items: NewsItem[]): NewsContext {
-  if (items.length === 0) return { sentiment: 0, weight: 0, headlines: [], breakingAlert: false };
-  const avg = items.reduce((sum, n) => sum + scoreSentiment(n.title).score, 0) / items.length;
+  const count = items.length;
+  if (count === 0) return { sentiment: 0, weight: 0, headlines: [], breakingAlert: false };
+  const avg = items.reduce((sum, n) => sum + scoreSentiment(n.title).score, 0) / count;
   return {
-    sentiment: parseFloat(avg.toFixed(3)),
-    weight: parseFloat(Math.min(1, items.length / 5).toFixed(2)),
+    sentiment: Number(avg.toFixed(3)),
+    weight: Number(Math.min(1, count / 5).toFixed(2)),
     headlines: items.slice(0, 3).map((n) => n.title),
     breakingAlert: items.some((n) => n.isBreaking),
   };
@@ -256,7 +278,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-1",
       title: "Middle East Tensions Elevate Oil Market Risk Premium",
-      description: "Escalating tensions near the Strait of Hormuz raise concerns over supply disruption to global crude markets.",
+      description:
+        "Escalating tensions near the Strait of Hormuz raise concerns over supply disruption to global crude markets.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: oneHourAgo,
@@ -267,7 +290,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-2",
       title: "Fed Officials Signal Caution on Rate Cuts Amid Sticky Inflation",
-      description: "Federal Reserve speakers push back on early easing expectations, citing persistent core PCE above target.",
+      description:
+        "Federal Reserve speakers push back on early easing expectations, citing persistent core PCE above target.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: twoHoursAgo,
@@ -278,7 +302,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-3",
       title: "Ukraine-Russia Ceasefire Talks Stall as Both Sides Harden Positions",
-      description: "Diplomatic efforts hit a roadblock as both sides maintain hardline positions ahead of next round of negotiations.",
+      description:
+        "Diplomatic efforts hit a roadblock as both sides maintain hardline positions ahead of next round of negotiations.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: twoHoursAgo,
@@ -289,7 +314,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-4",
       title: "China GDP Growth Misses Estimates, Trade Tensions Flare",
-      description: "Weaker-than-expected Chinese output data adds to global growth concerns as US tariff threats resurface.",
+      description:
+        "Weaker-than-expected Chinese output data adds to global growth concerns as US tariff threats resurface.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
@@ -300,7 +326,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-5",
       title: "US-EU Trade Deal Progress Boosts Risk Appetite",
-      description: "Reports of progress on transatlantic trade framework lift equities and reduce safe-haven demand.",
+      description:
+        "Reports of progress on transatlantic trade framework lift equities and reduce safe-haven demand.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
@@ -311,7 +338,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-6",
       title: "OPEC+ Reaffirms Output Cuts Through Next Quarter",
-      description: "Cartel reaffirms production discipline keeping oil prices supported near 3-month highs.",
+      description:
+        "Cartel reaffirms production discipline keeping oil prices supported near 3-month highs.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
@@ -322,7 +350,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-7",
       title: "Bitcoin Holds Above Key Support as Institutional Flows Stabilize",
-      description: "BTC consolidates after volatility spike as ETF inflows resume and on-chain metrics improve.",
+      description:
+        "BTC consolidates after volatility spike as ETF inflows resume and on-chain metrics improve.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
@@ -333,7 +362,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-8",
       title: "Taiwan Strait Tensions Rise on PLA Naval Exercise Reports",
-      description: "Beijing orders large-scale naval exercises near Taiwan, semiconductor supply chains in focus.",
+      description:
+        "Beijing orders large-scale naval exercises near Taiwan, semiconductor supply chains in focus.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: oneHourAgo,
@@ -344,7 +374,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-9",
       title: "Global Health Officials Monitor Novel Respiratory Outbreak",
-      description: "WHO convenes emergency session as cluster of unusual respiratory cases reported across multiple countries.",
+      description:
+        "WHO convenes emergency session as cluster of unusual respiratory cases reported across multiple countries.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: oneHourAgo,
@@ -355,7 +386,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-10",
       title: "Nvidia AI Chip Demand Outpaces Supply, Shares Hit Record",
-      description: "Data center AI buildout accelerates as hyperscalers commit multi-year GPU procurement contracts.",
+      description:
+        "Data center AI buildout accelerates as hyperscalers commit multi-year GPU procurement contracts.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
@@ -366,7 +398,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-11",
       title: "North Korea ICBM Test Provokes Emergency UN Security Council Session",
-      description: "Pyongyang launches long-range missile over Japan's EEZ; emergency UN session called.",
+      description:
+        "Pyongyang launches long-range missile over Japan's EEZ; emergency UN session called.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: twoHoursAgo,
@@ -377,7 +410,8 @@ function getFallbackNews(): NewsItem[] {
     {
       id: "fb-12",
       title: "ECB Holds Rates Steady as Eurozone Inflation Cools Toward Target",
-      description: "European Central Bank signals patient approach as disinflation progress continues.",
+      description:
+        "European Central Bank signals patient approach as disinflation progress continues.",
       url: "#",
       source: "Hivemind Intel",
       publishedAt: now,
