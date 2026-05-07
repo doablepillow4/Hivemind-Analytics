@@ -1,63 +1,62 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# compiled output
-dist
-tmp
-out-tsc
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 *.tsbuildinfo
-.expo
-.expo-shared
+.pnpm-store/
 
-# dependencies
-node_modules
+# Build outputs
+dist/
+build/
+.out/
+.next/
+artifacts/**/dist/
+artifacts/api-server/.next/
+artifacts/hivemind/.next/
+artifacts/api-server/dist/
+artifacts/hivemind/dist/
 
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+# Compiled / Temporary
+tmp/
+out-tsc/
+temp/
+*.tmp
 
-# IDE - VSCode
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Caches
+.cache/
+.turbo/
+.eslintcache
+.nyc_output/
+coverage/
+
+# IDEs and Editors
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+.idea/
+*.sublime-workspace
 .DS_Store
 Thumbs.db
 
-# Replit
-.cache/
-.local/
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Environment & secrets — NEVER commit these
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-*.log
-pnpm-debug.log*
-
-# Testing & coverage
-*.lcov
-.nyc_output/
+# Misc
+.expo
+.expo-shared
+.sass-cache
+/connect.lock
+/libpeerconnection.log
