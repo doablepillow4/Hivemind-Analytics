@@ -357,7 +357,7 @@ function GeoIntelPanel({
                     >
                       {pct}%
                     </div>
-                    {shift !== null && Math.abs(shift) > 0.005 && (
+                    {shift != null && Math.abs(shift) > 0.005 && (
                       <div
                         className={`text-[9px] font-mono ${shift > 0 ? "text-red-400" : "text-emerald-400"}`}
                       >
