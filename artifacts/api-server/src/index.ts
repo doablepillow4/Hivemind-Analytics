@@ -1,6 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startScheduler, stopScheduler } from "./lib/scheduler";
+import { fetchCryptoPrices, fetchStockPrice, STOCK_SYMBOL_LIST } from "./lib/market-data";
+import { fetchGeopoliticsNews } from "./lib/news";
 
 let rawPort = process.env["PORT"];
 
@@ -23,6 +25,17 @@ const server = app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   startScheduler();
+
+  // Pre-warm caches in background so first page loads are fast
+  Promise.allSettled([
+    fetchCryptoPrices().catch((e) => logger.warn({ err: e }, "Warmup: crypto prices failed")),
+    ...STOCK_SYMBOL_LIST.map((s) =>
+      fetchStockPrice(s).catch((e) => logger.warn({ err: e, symbol: s }, "Warmup: stock price failed")),
+    ),
+    fetchGeopoliticsNews().catch((e) => logger.warn({ err: e }, "Warmup: news failed")),
+  ]).then(() => {
+    logger.info("Cache warmup complete");
+  });
 });
 
 function shutdown(signal: string): void {

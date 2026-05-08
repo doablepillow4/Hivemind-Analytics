@@ -190,7 +190,7 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
             "User-Agent": "Mozilla/5.0 (compatible; Hivemind/1.0)",
             Accept: "application/rss+xml, application/xml, text/xml, */*",
           },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(5000),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
