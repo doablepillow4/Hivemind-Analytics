@@ -24,18 +24,25 @@ router.get("/market/prices", async (req, res): Promise<void> => {
   const live =
     typeof req.query["live"] === "string" ? req.query["live"] === "true" : false;
 
-  const [cryptos, ...stocks] = await Promise.allSettled([
+  const [cryptosResult, ...stockResults] = await Promise.allSettled([
     fetchCryptoPrices(live),
-    ...STOCK_SYMBOL_LIST.map((s) => fetchStockPrice(s, live)),
+    ...STOCK_SYMBOL_LIST.map(async (symbol) => ({ symbol, result: await fetchStockPrice(symbol, live) })),
   ]);
 
   const raw: unknown[] = [];
 
-  if (cryptos.status === "fulfilled") raw.push(...cryptos.value);
-  else logger.warn({ err: cryptos.reason }, "Crypto prices fetch failed");
+  if (cryptosResult.status === "fulfilled") {
+    raw.push(...cryptosResult.value);
+  } else {
+    logger.warn({ err: cryptosResult.reason }, "Crypto prices fetch failed");
+  }
 
-  for (const stock of stocks) {
-    if (stock.status === "fulfilled") raw.push(stock.value);
+  for (const stock of stockResults) {
+    if (stock.status === "fulfilled") {
+      raw.push(stock.value.result);
+    } else {
+      logger.warn({ err: stock.reason }, "Stock price fetch failed");
+    }
   }
 
   const prices = raw
@@ -50,11 +57,18 @@ router.get("/market/prices", async (req, res): Promise<void> => {
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   if (live && prices.length === 0) {
+    logger.error({ live, rawCount: raw.length }, "Live market fetch failed with no valid results");
     res.status(503).json({
       error: "Live market data unavailable",
       message: "Could not fetch live market prices at this time.",
     });
     return;
+  }
+
+  if (prices.length > 0 && prices.length < STOCK_SYMBOL_LIST.length + 1) {
+    logger.warn({ live, returned: prices.length }, "Partial market prices returned");
+  } else {
+    logger.info({ live, returned: prices.length }, "Market prices returned");
   }
 
   res.json(prices);

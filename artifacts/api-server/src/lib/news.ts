@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { fetchWithRetry, DEFAULT_BROWSER_HEADERS } from "./fetch-utils";
 
 export interface NewsItem {
   id: string;
@@ -147,16 +148,17 @@ async function _fetchNewsRaw(): Promise<NewsItem[]> {
   await Promise.all(
     FEED_SOURCES.map(async ({ name, url }) => {
       try {
-        const res = await fetch(url, {
+        const res = await fetchWithRetry(url, {
           headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; Hivemind/1.0)",
+            ...DEFAULT_BROWSER_HEADERS,
             Accept: "application/rss+xml, application/xml, text/xml, */*",
+            Referer: url,
           },
-          signal: AbortSignal.timeout(5000),
-        });
+        }, 3, 15000);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         all.push(...parseRSS(text, name));
+        logger.info({ source: name, itemCount: all.length }, "Fetched news feed");
       } catch (err) {
         logger.warn({ source: name, err }, "News feed fetch failed");
       }
@@ -220,6 +222,11 @@ export async function fetchGeopoliticsNews(options?: { live?: boolean }): Promis
       _staleCache = items;
       return items;
     }
+    if (live && _staleCache) {
+      logger.warn("Live news fetch failed, returning stale cache");
+      _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
+      return _staleCache;
+    }
     if (live) {
       throw new Error("No live news items returned");
     }
@@ -230,7 +237,7 @@ export async function fetchGeopoliticsNews(options?: { live?: boolean }): Promis
     return [];
   } catch (err) {
     logger.error({ err }, live ? "Live news fetch failed" : "News fetch failed");
-    if (!live && _staleCache) {
+    if (_staleCache) {
       _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
       return _staleCache;
     }

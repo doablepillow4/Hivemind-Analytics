@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { GetPolymarketMarketsQueryParams, GetPolymarketMarketsResponse } from "@workspace/api-zod";
 import { getOddsShift } from "../lib/polymarket-cache";
 import { logger } from "../lib/logger";
+import { fetchWithRetry, DEFAULT_BROWSER_HEADERS } from "../lib/fetch-utils";
 
 const router: IRouter = Router();
 
@@ -76,10 +77,13 @@ function eventsToMarkets(events: PolymarketEvent[]): MarketItem[] {
 
 async function fetchTag(tag: string, limit: number): Promise<PolymarketEvent[]> {
   const url = `https://gamma-api.polymarket.com/events?limit=${limit}&active=true&closed=false&tag_slug=${tag}&order=volume&ascending=false`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(8000),
-  });
+  const res = await fetchWithRetry(url, {
+    headers: {
+      ...DEFAULT_BROWSER_HEADERS,
+      Accept: "application/json",
+      Referer: "https://polymarket.com/",
+    },
+  }, 3, 15000);
   if (!res.ok) throw new Error(`Polymarket ${tag} error: ${res.status}`);
   return (await res.json()) as PolymarketEvent[];
 }
@@ -121,7 +125,7 @@ export async function fetchPolymarketData(limit: number = 30, options?: { live?:
   addFrom(byPolitics, limit - merged.length);
 
   if (merged.length === 0) {
-    if (!live && _cache) {
+    if (_cache) {
       logger.warn("Polymarket fetch failed, returning stale cached data");
       return _cache.data.slice(0, limit);
     }

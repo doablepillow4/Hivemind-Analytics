@@ -1,7 +1,20 @@
 import { logger } from "./logger";
 import { marketCache, TTL, getOrFetch } from "./cache";
+import { fetchWithRetry, DEFAULT_BROWSER_HEADERS } from "./fetch-utils";
 
 const STOCK_SYMBOLS = ["NVDA", "TSLA", "AAPL", "MSFT", "AMZN", "META", "GOOGL", "SPY"];
+
+const YAHOO_HEADERS = {
+  ...DEFAULT_BROWSER_HEADERS,
+  Accept: "application/json, text/plain, */*",
+  Referer: "https://finance.yahoo.com/",
+  Origin: "https://finance.yahoo.com",
+};
+
+const COINGECKO_HEADERS = {
+  Accept: "application/json",
+  ...DEFAULT_BROWSER_HEADERS,
+};
 const CRYPTO_IDS: Record<string, { id: string; symbol: string; name: string }> = {
   BTC: { id: "bitcoin", symbol: "BTC", name: "Bitcoin" },
   ETH: { id: "ethereum", symbol: "ETH", name: "Ethereum" },
@@ -46,10 +59,10 @@ export async function fetchStockPrice(symbol: string, live = false) {
 
 async function _fetchStockPriceRaw(symbol: string) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-    signal: AbortSignal.timeout(5000),
-  });
+  const res = await fetchWithRetry(url, {
+    headers: YAHOO_HEADERS,
+  }, 3, 15000);
+
   if (!res.ok) throw new Error(`Yahoo Finance error: ${res.status} for ${symbol}`);
   const json = (await res.json()) as {
     chart: {
@@ -110,10 +123,9 @@ export async function fetchCryptoPrices(live = false) {
       .map((c) => c.id)
       .join(",");
     const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=true&price_change_percentage=24h&order=market_cap_desc`;
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(5000),
-    });
+    const res = await fetchWithRetry(url, {
+      headers: COINGECKO_HEADERS,
+    }, 3, 12000);
     if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
     const data = (await res.json()) as Array<{
       id: string;
@@ -162,10 +174,9 @@ async function _fetchCryptoPricesRaw() {
     .map((c) => c.id)
     .join(",");
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=true&price_change_percentage=24h&order=market_cap_desc`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(5000),
-  });
+  const res = await fetchWithRetry(url, {
+    headers: COINGECKO_HEADERS,
+  }, 3, 12000);
   if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
   const data = (await res.json()) as Array<{
     id: string;
@@ -218,10 +229,10 @@ async function _fetchStockHistoryRaw(symbol: string, days = 30) {
   const range = days <= 7 ? "7d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
   const interval = days <= 7 ? "60m" : "1d";
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-    signal: AbortSignal.timeout(8000),
-  });
+  const res = await fetchWithRetry(url, {
+    headers: YAHOO_HEADERS,
+  }, 3, 15000);
+
   if (!res.ok) throw new Error(`Yahoo Finance history error: ${res.status} for ${symbol}`);
   const json = (await res.json()) as {
     chart: {
@@ -264,10 +275,9 @@ export async function fetchCryptoHistory(coinId: string, days = 30) {
 
 async function _fetchCryptoHistoryRaw(coinId: string, days = 30) {
   const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(8000),
-  });
+  const res = await fetchWithRetry(url, {
+    headers: COINGECKO_HEADERS,
+  }, 3, 15000);
   if (!res.ok) throw new Error(`CoinGecko history error: ${res.status} for ${coinId}`);
   const json = (await res.json()) as { prices: [number, number][] };
   return json.prices
