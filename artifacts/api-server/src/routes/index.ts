@@ -8,6 +8,7 @@ import latticeRouter from "./lattice";
 import newsRouter from "./news";
 import geoImpactRouter from "./geo-impact";
 import fearGreedRouter from "./fear-greed";
+import agentRouter from "./agent";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(polymarketRouter);
 router.use(latticeRouter);
 router.use(newsRouter);
 router.use(geoImpactRouter);
+router.use(agentRouter);
 
 export default router;

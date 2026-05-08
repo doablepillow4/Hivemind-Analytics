@@ -1,12 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, LineChart, Telescope, Network } from "lucide-react";
+import { LayoutDashboard, LineChart, Telescope, Network, Bot } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Markets", icon: LayoutDashboard },
   { href: "/lattice", label: "Lattice", icon: Network },
   { href: "/simulator", label: "Simulator", icon: LineChart },
   { href: "/intelligence", label: "Intel", icon: Telescope },
+  { href: "/agent", label: "Agent", icon: Bot },
 ];
 
 export function BottomNav() {

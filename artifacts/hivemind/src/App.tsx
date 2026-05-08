@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Simulator from "@/pages/simulator";
 import Intelligence from "@/pages/geopolitics";
 import Lattice from "@/pages/lattice";
+import Agent from "@/pages/agent";
 import { Layout } from "@/components/layout/layout";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/lattice" component={Lattice} />
         <Route path="/simulator" component={Simulator} />
         <Route path="/intelligence" component={Intelligence} />
+        <Route path="/agent" component={Agent} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
