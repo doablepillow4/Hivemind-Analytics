@@ -5,103 +5,104 @@
  * Hivemind Predictor API
  * OpenAPI spec version: 0.1.0
  */
-import * as zod from "zod";
+import * as zod from 'zod';
 
 /**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  status: zod.string(),
-});
+  "status": zod.string()
+})
+
 
 /**
  * @summary Get current prices for all tracked symbols
  */
 export const GetMarketPricesResponseItem = zod.object({
-  symbol: zod.string(),
-  name: zod.string(),
-  price: zod.number(),
-  change: zod.number(),
-  changePercent: zod.number(),
-  volume: zod.number().optional(),
-  marketCap: zod.number().optional(),
-  type: zod.enum(["stock", "crypto"]),
-  sparkline: zod.array(zod.number()),
-  updatedAt: zod.string(),
-});
-export const GetMarketPricesResponse = zod.array(GetMarketPricesResponseItem);
+  "symbol": zod.string(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "change": zod.number(),
+  "changePercent": zod.number(),
+  "volume": zod.number().optional(),
+  "marketCap": zod.number().optional(),
+  "type": zod.enum(['stock', 'crypto']),
+  "sparkline": zod.array(zod.number()),
+  "updatedAt": zod.string()
+})
+export const GetMarketPricesResponse = zod.array(GetMarketPricesResponseItem)
+
 
 /**
  * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
  */
 export const GetMarketQuoteParams = zod.object({
-  symbol: zod.coerce.string(),
-});
+  "symbol": zod.coerce.string()
+})
 
 export const GetMarketQuoteResponse = zod.object({
-  symbol: zod.string(),
-  name: zod.string(),
-  price: zod.number(),
-  change: zod.number(),
-  changePercent: zod.number(),
-  volume: zod.number().optional(),
-  marketCap: zod.number().optional(),
-  type: zod.enum(["stock", "crypto"]),
-  sparkline: zod.array(zod.number()),
-  updatedAt: zod.string(),
-});
+  "symbol": zod.string(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "change": zod.number(),
+  "changePercent": zod.number(),
+  "volume": zod.number().optional(),
+  "marketCap": zod.number().optional(),
+  "type": zod.enum(['stock', 'crypto']),
+  "sparkline": zod.array(zod.number()),
+  "updatedAt": zod.string()
+})
+
 
 /**
  * @summary Get historical price data for a symbol
  */
 export const GetMarketHistoryParams = zod.object({
-  symbol: zod.coerce.string(),
-});
+  "symbol": zod.coerce.string()
+})
 
 export const getMarketHistoryQueryDaysDefault = 30;
 
 export const GetMarketHistoryQueryParams = zod.object({
-  days: zod.coerce.number().default(getMarketHistoryQueryDaysDefault),
-});
+  "days": zod.coerce.number().default(getMarketHistoryQueryDaysDefault)
+})
 
 export const GetMarketHistoryResponse = zod.object({
-  symbol: zod.string(),
-  data: zod.array(
-    zod.object({
-      timestamp: zod.string(),
-      open: zod.number().optional(),
-      high: zod.number().optional(),
-      low: zod.number().optional(),
-      close: zod.number(),
-      volume: zod.number().optional(),
-    }),
-  ),
-});
+  "symbol": zod.string(),
+  "data": zod.array(zod.object({
+  "timestamp": zod.string(),
+  "open": zod.number().optional(),
+  "high": zod.number().optional(),
+  "low": zod.number().optional(),
+  "close": zod.number(),
+  "volume": zod.number().optional()
+}))
+})
+
 
 /**
  * @summary Get all predictions with confidence scores
  */
 export const GetPredictionsResponseItem = zod.object({
-  id: zod.number(),
-  symbol: zod.string(),
-  direction: zod.enum(["bullish", "bearish", "neutral"]),
-  targetPrice: zod.number(),
-  currentPrice: zod.number(),
-  confidence: zod.number(),
-  timeframe: zod.string(),
-  signals: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      weight: zod.number(),
-      bullish: zod.boolean(),
-    }),
-  ),
-  outcome: zod.enum(["correct", "incorrect", "pending"]).nullish(),
-  createdAt: zod.string(),
-  resolvedAt: zod.string().nullish(),
-});
-export const GetPredictionsResponse = zod.array(GetPredictionsResponseItem);
+  "id": zod.number(),
+  "symbol": zod.string(),
+  "direction": zod.enum(['bullish', 'bearish', 'neutral']),
+  "targetPrice": zod.number(),
+  "currentPrice": zod.number(),
+  "confidence": zod.number(),
+  "timeframe": zod.string(),
+  "signals": zod.array(zod.object({
+  "name": zod.string(),
+  "value": zod.number(),
+  "weight": zod.number(),
+  "bullish": zod.boolean()
+})),
+  "outcome": zod.enum(['correct', 'incorrect', 'pending']).nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+})
+export const GetPredictionsResponse = zod.array(GetPredictionsResponseItem)
+
 
 /**
  * @summary Generate a new Hivemind prediction for a symbol
@@ -109,29 +110,29 @@ export const GetPredictionsResponse = zod.array(GetPredictionsResponseItem);
 export const createPredictionBodyTimeframeDefault = `7d`;
 
 export const CreatePredictionBody = zod.object({
-  symbol: zod.string(),
-  timeframe: zod.string().default(createPredictionBodyTimeframeDefault),
-});
+  "symbol": zod.string(),
+  "timeframe": zod.string().default(createPredictionBodyTimeframeDefault)
+})
+
 
 /**
  * @summary Get prediction accuracy summary and self-improvement stats
  */
 export const GetPredictionsSummaryResponse = zod.object({
-  totalPredictions: zod.number(),
-  correctPredictions: zod.number(),
-  accuracy: zod.number(),
-  averageConfidence: zod.number(),
-  recentAccuracy: zod.number(),
-  improvementTrend: zod.number(),
-  bySymbol: zod.array(
-    zod.object({
-      symbol: zod.string(),
-      total: zod.number(),
-      correct: zod.number(),
-      accuracy: zod.number(),
-    }),
-  ),
-});
+  "totalPredictions": zod.number(),
+  "correctPredictions": zod.number(),
+  "accuracy": zod.number(),
+  "averageConfidence": zod.number(),
+  "recentAccuracy": zod.number(),
+  "improvementTrend": zod.number(),
+  "bySymbol": zod.array(zod.object({
+  "symbol": zod.string(),
+  "total": zod.number(),
+  "correct": zod.number(),
+  "accuracy": zod.number()
+}))
+})
+
 
 /**
  * @summary Run Monte Carlo simulation for event impact
@@ -139,54 +140,41 @@ export const GetPredictionsSummaryResponse = zod.object({
 export const runMonteCarloBodySimulationsDefault = 1000;
 
 export const RunMonteCarloBody = zod.object({
-  symbol: zod.string(),
-  currentPrice: zod.number(),
-  volatility: zod.number(),
-  eventImpact: zod.number(),
-  timeHorizon: zod.number(),
-  simulations: zod.number().default(runMonteCarloBodySimulationsDefault),
-  geoPresetKey: zod
-    .string()
-    .optional()
-    .describe("Optional geopolitical preset key to inject geo context"),
-});
+  "symbol": zod.string(),
+  "currentPrice": zod.number(),
+  "volatility": zod.number(),
+  "eventImpact": zod.number(),
+  "timeHorizon": zod.number(),
+  "simulations": zod.number().default(runMonteCarloBodySimulationsDefault),
+  "geoPresetKey": zod.string().optional().describe('Optional geopolitical preset key to inject geo context')
+})
 
 export const RunMonteCarloResponse = zod.object({
-  symbol: zod.string(),
-  simulations: zod.number(),
-  median: zod.number(),
-  mean: zod.number(),
-  p10: zod.number(),
-  p25: zod.number(),
-  p75: zod.number(),
-  p90: zod.number(),
-  bullishProbability: zod.number(),
-  bearishProbability: zod.number(),
-  var95: zod.number(),
-  maxDrawdown: zod.number(),
-  expectedReturn: zod.number(),
-  paths: zod.array(zod.array(zod.number())),
-  geopoliticsContext: zod
-    .array(
-      zod.object({
-        question: zod.string(),
-        yesPrice: zod.number(),
-        noPrice: zod.number(),
-        volume: zod.number(),
-        category: zod.string(),
-        marketImpact: zod
-          .string()
-          .describe("How this market affects the simulated asset"),
-        oddsShift: zod
-          .number()
-          .nullish()
-          .describe(
-            "Change in yes probability since last fetch (positive = rising)",
-          ),
-      }),
-    )
-    .nullish(),
-});
+  "symbol": zod.string(),
+  "simulations": zod.number(),
+  "median": zod.number(),
+  "mean": zod.number(),
+  "p10": zod.number(),
+  "p25": zod.number(),
+  "p75": zod.number(),
+  "p90": zod.number(),
+  "bullishProbability": zod.number(),
+  "bearishProbability": zod.number(),
+  "var95": zod.number(),
+  "maxDrawdown": zod.number(),
+  "expectedReturn": zod.number(),
+  "paths": zod.array(zod.array(zod.number())),
+  "geopoliticsContext": zod.array(zod.object({
+  "question": zod.string(),
+  "yesPrice": zod.number(),
+  "noPrice": zod.number(),
+  "volume": zod.number(),
+  "category": zod.string(),
+  "marketImpact": zod.string().describe('How this market affects the simulated asset'),
+  "oddsShift": zod.number().nullish().describe('Change in yes probability since last fetch (positive = rising)')
+})).nullish()
+})
+
 
 /**
  * @summary Get top Polymarket prediction markets
@@ -194,253 +182,209 @@ export const RunMonteCarloResponse = zod.object({
 export const getPolymarketMarketsQueryLimitDefault = 20;
 
 export const GetPolymarketMarketsQueryParams = zod.object({
-  limit: zod.coerce.number().default(getPolymarketMarketsQueryLimitDefault),
-});
+  "limit": zod.coerce.number().default(getPolymarketMarketsQueryLimitDefault),
+  "live": zod.coerce.boolean().optional()
+})
 
 export const GetPolymarketMarketsResponseItem = zod.object({
-  id: zod.string(),
-  question: zod.string(),
-  category: zod.string().optional(),
-  yesPrice: zod.number(),
-  noPrice: zod.number(),
-  volume: zod.number().optional(),
-  liquidity: zod.number().optional(),
-  endDate: zod.string().optional(),
-  active: zod.boolean(),
-  oddsShift: zod
-    .number()
-    .nullish()
-    .describe(
-      "Change in yes probability since last fetch (positive = rising odds)",
-    ),
-});
-export const GetPolymarketMarketsResponse = zod.array(
-  GetPolymarketMarketsResponseItem,
-);
+  "id": zod.string(),
+  "question": zod.string(),
+  "category": zod.string().optional(),
+  "yesPrice": zod.number(),
+  "noPrice": zod.number(),
+  "volume": zod.number().optional(),
+  "liquidity": zod.number().optional(),
+  "endDate": zod.string().optional(),
+  "active": zod.boolean(),
+  "oddsShift": zod.number().nullish().describe('Change in yes probability since last fetch (positive = rising odds)')
+})
+export const GetPolymarketMarketsResponse = zod.array(GetPolymarketMarketsResponseItem)
+
 
 /**
  * @summary Get latest geopolitical and financial news
  */
 export const GetNewsQueryParams = zod.object({
-  symbol: zod.coerce.string().optional(),
-});
+  "symbol": zod.coerce.string().optional(),
+  "live": zod.coerce.boolean().optional()
+})
 
 export const GetNewsResponseItem = zod.object({
-  id: zod.string(),
-  title: zod.string(),
-  description: zod.string(),
-  url: zod.string(),
-  source: zod.string(),
-  publishedAt: zod.string(),
-  sentiment: zod.enum(["bullish", "bearish", "neutral"]),
-  category: zod.string(),
-  isBreaking: zod.boolean(),
-  relatedMarkets: zod
-    .array(
-      zod.object({
-        question: zod.string(),
-        yesPrice: zod.number(),
-        noPrice: zod.number(),
-        volume: zod.number(),
-        category: zod.string(),
-        marketImpact: zod
-          .string()
-          .describe("How this market affects the simulated asset"),
-        oddsShift: zod
-          .number()
-          .nullish()
-          .describe(
-            "Change in yes probability since last fetch (positive = rising)",
-          ),
-      }),
-    )
-    .nullish(),
-});
-export const GetNewsResponse = zod.array(GetNewsResponseItem);
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "url": zod.string(),
+  "source": zod.string(),
+  "publishedAt": zod.string(),
+  "sentiment": zod.enum(['bullish', 'bearish', 'neutral']),
+  "category": zod.string(),
+  "isBreaking": zod.boolean(),
+  "relatedMarkets": zod.array(zod.object({
+  "question": zod.string(),
+  "yesPrice": zod.number(),
+  "noPrice": zod.number(),
+  "volume": zod.number(),
+  "category": zod.string(),
+  "marketImpact": zod.string().describe('How this market affects the simulated asset'),
+  "oddsShift": zod.number().nullish().describe('Change in yes probability since last fetch (positive = rising)')
+})).nullish()
+})
+export const GetNewsResponse = zod.array(GetNewsResponseItem)
+
 
 /**
- * @summary Run Hivemind Predictive Lattice (HPL-HPA v2/v3) for a symbol
+ * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
  */
 export const runLatticeBodyTimeframeDefault = `7d`;
 
 export const RunLatticeBody = zod.object({
-  symbol: zod.string(),
-  timeframe: zod.string().default(runLatticeBodyTimeframeDefault),
-  /** Enable v3 Persistent Delta Belief Lattice mode */
-  useV3: zod.boolean().optional().default(false),
-});
+  "symbol": zod.string(),
+  "timeframe": zod.string().default(runLatticeBodyTimeframeDefault)
+})
 
 export const RunLatticeResponse = zod.object({
-  runId: zod.string(),
-  symbol: zod.string(),
-  timeframe: zod.string(),
-  regime: zod.enum(["calm", "volatile", "crisis"]),
-  regimeScore: zod.number(),
-  tokens: zod.array(
-    zod.object({
-      id: zod.string(),
-      agentType: zod.string(),
-      round: zod.number(),
-      hypothesis: zod.enum(["bullish", "bearish", "neutral"]),
-      probability: zod.number(),
-      confidence: zod.number(),
-      rationale: zod.array(zod.string()),
-      shapHive: zod.number(),
-      shapAi: zod.number(),
-      shapGeo: zod.number(),
-      liquidityScore: zod.number(),
-      parentIds: zod.array(zod.string()),
-      // v3 delta fields
-      delta: zod.number().optional(),
-      momentum: zod.number().optional(),
-      previousTokenId: zod.string().optional(),
-    }),
-  ),
-  debateRounds: zod.array(
-    zod.object({
-      round: zod.number(),
-      agentType: zod.string(),
-      challenge: zod.string(),
-      adjustment: zod.number(),
-      accepted: zod.boolean(),
-    }),
-  ),
-  shap: zod.object({
-    hive: zod.number(),
-    ai: zod.number(),
-    geo: zod.number(),
-  }),
-  finalPrediction: zod.object({
-    direction: zod.enum(["bullish", "bearish", "neutral"]),
-    targetPrice: zod.number(),
-    confidence: zod.number(),
-    hivemindScore: zod.number(),
-  }),
-  causalNarrative: zod.string(),
-  minorityReport: zod.string().nullish(),
-  agentConsensus: zod.number(),
-  polymarketIntel: zod
-    .array(
-      zod.object({
-        headline: zod
-          .string()
-          .describe("Short breaking-news style headline about the event"),
-        question: zod.string(),
-        yesPrice: zod.number(),
-        oddsShift: zod.number().nullish(),
-        marketImpact: zod.string(),
-        category: zod.string(),
-        volume: zod.number(),
-      }),
-    )
-    .nullish(),
-  /** v3: Belief dynamics vs the previous run for this symbol */
-  beliefDynamics: zod
-    .object({
-      delta: zod.number(),
-      momentum: zod.number(),
-      convictionShift: zod.enum(["strengthening", "weakening", "reversing", "stable"]),
-      previousRunId: zod.string().nullish(),
-      previousDirection: zod.enum(["bullish", "bearish", "neutral"]).nullish(),
-      sessionCount: zod.number(),
-    })
-    .optional(),
-});
+  "runId": zod.string(),
+  "symbol": zod.string(),
+  "timeframe": zod.string(),
+  "regime": zod.enum(['calm', 'volatile', 'crisis']),
+  "regimeScore": zod.number(),
+  "tokens": zod.array(zod.object({
+  "id": zod.string(),
+  "agentType": zod.string(),
+  "round": zod.number(),
+  "hypothesis": zod.enum(['bullish', 'bearish', 'neutral']),
+  "probability": zod.number(),
+  "confidence": zod.number(),
+  "rationale": zod.array(zod.string()),
+  "shapHive": zod.number(),
+  "shapAi": zod.number(),
+  "shapGeo": zod.number(),
+  "liquidityScore": zod.number(),
+  "parentIds": zod.array(zod.string())
+})),
+  "debateRounds": zod.array(zod.object({
+  "round": zod.number(),
+  "agentType": zod.string(),
+  "challenge": zod.string(),
+  "adjustment": zod.number(),
+  "accepted": zod.boolean()
+})),
+  "shap": zod.object({
+  "hive": zod.number(),
+  "ai": zod.number(),
+  "geo": zod.number()
+}),
+  "finalPrediction": zod.object({
+  "direction": zod.enum(['bullish', 'bearish', 'neutral']),
+  "targetPrice": zod.number(),
+  "confidence": zod.number(),
+  "hivemindScore": zod.number()
+}),
+  "causalNarrative": zod.string(),
+  "minorityReport": zod.string().nullish(),
+  "agentConsensus": zod.number(),
+  "polymarketIntel": zod.array(zod.object({
+  "headline": zod.string().describe('Short breaking-news style headline about the event'),
+  "question": zod.string(),
+  "yesPrice": zod.number(),
+  "oddsShift": zod.number().nullish(),
+  "marketImpact": zod.string(),
+  "category": zod.string(),
+  "volume": zod.number()
+})).nullish()
+})
 
-/**
- * @summary Get conviction momentum history for a symbol (v3 runs only)
- */
-export const GetBeliefHistoryParams = zod.object({
-  symbol: zod.coerce.string(),
-});
-
-export const getBeliefHistoryQueryLimitDefault = 50;
-
-export const GetBeliefHistoryQueryParams = zod.object({
-  limit: zod.coerce.number().min(1).max(200).default(getBeliefHistoryQueryLimitDefault),
-});
-
-export const GetBeliefHistoryResponseItem = zod.object({
-  runId: zod.string(),
-  symbol: zod.string(),
-  sessionCount: zod.number(),
-  finalProbability: zod.number(),
-  finalDirection: zod.enum(["bullish", "bearish", "neutral"]),
-  hivemindScore: zod.number(),
-  regime: zod.enum(["calm", "volatile", "crisis"]),
-  delta: zod.number(),
-  momentum: zod.number(),
-  convictionShift: zod.enum(["strengthening", "weakening", "reversing", "stable"]),
-  previousRunId: zod.string().nullish(),
-  createdAt: zod.string(),
-});
-
-export const GetBeliefHistoryResponse = zod.array(GetBeliefHistoryResponseItem);
 
 /**
  * @summary Challenge a lattice agent with a new argument
  */
 export const LatticeChallengeBody = zod.object({
-  agentType: zod.string(),
-  challenge: zod.string(),
-  symbol: zod.string(),
-  currentProbability: zod.number(),
-});
+  "agentType": zod.string(),
+  "challenge": zod.string(),
+  "symbol": zod.string(),
+  "currentProbability": zod.number()
+})
 
 export const LatticeChallengeResponse = zod.object({
-  agentType: zod.string(),
-  response: zod.string(),
-  adjustment: zod.number(),
-  newProbability: zod.number(),
-});
+  "agentType": zod.string(),
+  "response": zod.string(),
+  "adjustment": zod.number(),
+  "newProbability": zod.number()
+})
+
 
 /**
  * @summary Get agent reputation and calibration states
  */
 export const GetLatticeAgentsResponseItem = zod.object({
-  agentId: zod.string(),
-  agentType: zod.string(),
-  reputation: zod.number(),
-  brierScore: zod.number(),
-  totalRuns: zod.number(),
-  correctRuns: zod.number(),
-});
-export const GetLatticeAgentsResponse = zod.array(GetLatticeAgentsResponseItem);
+  "agentId": zod.string(),
+  "agentType": zod.string(),
+  "reputation": zod.number(),
+  "brierScore": zod.number(),
+  "totalRuns": zod.number(),
+  "correctRuns": zod.number()
+})
+export const GetLatticeAgentsResponse = zod.array(GetLatticeAgentsResponseItem)
+
 
 /**
  * @summary Detect current volatility regime for a symbol
  */
 export const GetMarketRegimeQueryParams = zod.object({
-  symbol: zod.coerce.string(),
-});
+  "symbol": zod.coerce.string()
+})
 
 export const GetMarketRegimeResponse = zod.object({
-  symbol: zod.string(),
-  regime: zod.enum(["calm", "volatile", "crisis"]),
-  regimeScore: zod.number(),
-  volatility: zod.number(),
-  description: zod.string(),
-});
+  "symbol": zod.string(),
+  "regime": zod.enum(['calm', 'volatile', 'crisis']),
+  "regimeScore": zod.number(),
+  "volatility": zod.number(),
+  "description": zod.string()
+})
+
 
 /**
  * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
  */
 export const RunLatticeTrainingResponse = zod.object({
-  resolved: zod
-    .number()
-    .describe("Number of predictions resolved in this training cycle"),
-  improved: zod.number().describe("Number of agents whose reputation improved"),
-  agentUpdates: zod.array(
-    zod.object({
-      agentType: zod.string(),
-      oldReputation: zod.number(),
-      newReputation: zod.number(),
-      delta: zod.number(),
-      reason: zod.string(),
-    }),
-  ),
-  accuracyGain: zod
-    .number()
-    .describe("Net accuracy improvement (0-1) from this training cycle"),
-  message: zod.string(),
-});
+  "resolved": zod.number().describe('Number of predictions resolved in this training cycle'),
+  "improved": zod.number().describe('Number of agents whose reputation improved'),
+  "agentUpdates": zod.array(zod.object({
+  "agentType": zod.string(),
+  "oldReputation": zod.number(),
+  "newReputation": zod.number(),
+  "delta": zod.number(),
+  "reason": zod.string()
+})),
+  "accuracyGain": zod.number().describe('Net accuracy improvement (0-1) from this training cycle'),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Get belief history for a symbol
+ */
+export const GetBeliefHistoryParams = zod.object({
+  "symbol": zod.coerce.string()
+})
+
+export const GetBeliefHistoryQueryParams = zod.object({
+  "limit": zod.coerce.number().optional()
+})
+
+export const GetBeliefHistoryResponseItem = zod.object({
+  "runId": zod.string(),
+  "symbol": zod.string(),
+  "sessionCount": zod.number(),
+  "finalProbability": zod.number(),
+  "finalDirection": zod.enum(['bullish', 'bearish', 'neutral']),
+  "hivemindScore": zod.number(),
+  "regime": zod.enum(['calm', 'volatile', 'crisis']),
+  "delta": zod.number(),
+  "momentum": zod.number(),
+  "convictionShift": zod.enum(['strengthening', 'weakening', 'reversing', 'stable']),
+  "previousRunId": zod.string().nullish(),
+  "previousDirection": zod.enum(['bullish', 'bearish', 'neutral']).nullish(),
+  "createdAt": zod.string()
+})
+export const GetBeliefHistoryResponse = zod.array(GetBeliefHistoryResponseItem)

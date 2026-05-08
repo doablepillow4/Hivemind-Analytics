@@ -185,28 +185,32 @@ async function _fetchNewsRaw(): Promise<NewsItem[]> {
 
 const NEWS_TTL_MS = 10 * 60 * 1000;
 
-export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
-  if (_cache && Date.now() < _cache.expiry) return _cache.items;
+export async function fetchGeopoliticsNews(options?: { live?: boolean }): Promise<NewsItem[]> {
+  const live = options?.live === true;
 
-  if (_staleCache && !_refreshing) {
-    _refreshing = true;
-    _fetchNewsRaw()
-      .then((items) => {
-        if (items.length > 0) {
-          _cache = { items, expiry: Date.now() + NEWS_TTL_MS };
-          _staleCache = items;
-        }
-      })
-      .catch((err) => {
-        logger.warn({ err }, "Background news refresh failed");
-        if (_staleCache) {
-          _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
-        }
-      })
-      .finally(() => {
-        _refreshing = false;
-      });
-    return _staleCache;
+  if (!live) {
+    if (_cache && Date.now() < _cache.expiry) return _cache.items;
+
+    if (_staleCache && !_refreshing) {
+      _refreshing = true;
+      _fetchNewsRaw()
+        .then((items) => {
+          if (items.length > 0) {
+            _cache = { items, expiry: Date.now() + NEWS_TTL_MS };
+            _staleCache = items;
+          }
+        })
+        .catch((err) => {
+          logger.warn({ err }, "Background news refresh failed");
+          if (_staleCache) {
+            _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
+          }
+        })
+        .finally(() => {
+          _refreshing = false;
+        });
+      return _staleCache;
+    }
   }
 
   try {
@@ -216,18 +220,21 @@ export async function fetchGeopoliticsNews(): Promise<NewsItem[]> {
       _staleCache = items;
       return items;
     }
+    if (live) {
+      throw new Error("No live news items returned");
+    }
     if (_staleCache) {
       _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
       return _staleCache;
     }
     return [];
   } catch (err) {
-    logger.error({ err }, "News fetch failed");
-    if (_staleCache) {
+    logger.error({ err }, live ? "Live news fetch failed" : "News fetch failed");
+    if (!live && _staleCache) {
       _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
       return _staleCache;
     }
-    return [];
+    throw err;
   }
 }
 

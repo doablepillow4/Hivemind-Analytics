@@ -13,12 +13,12 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type MarketPriceType =
-  (typeof MarketPriceType)[keyof typeof MarketPriceType];
+export type MarketPriceType = typeof MarketPriceType[keyof typeof MarketPriceType];
+
 
 export const MarketPriceType = {
-  stock: "stock",
-  crypto: "crypto",
+  stock: 'stock',
+  crypto: 'crypto',
 } as const;
 
 export interface MarketPrice {
@@ -48,23 +48,22 @@ export interface MarketHistory {
   data: PricePoint[];
 }
 
-export type PredictionDirection =
-  (typeof PredictionDirection)[keyof typeof PredictionDirection];
+export type PredictionDirection = typeof PredictionDirection[keyof typeof PredictionDirection];
+
 
 export const PredictionDirection = {
-  bullish: "bullish",
-  bearish: "bearish",
-  neutral: "neutral",
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
 } as const;
 
-export type PredictionOutcome =
-  | (typeof PredictionOutcome)[keyof typeof PredictionOutcome]
-  | null;
+export type PredictionOutcome = typeof PredictionOutcome[keyof typeof PredictionOutcome] | null;
+
 
 export const PredictionOutcome = {
-  correct: "correct",
-  incorrect: "incorrect",
-  pending: "pending",
+  correct: 'correct',
+  incorrect: 'incorrect',
+  pending: 'pending',
 } as const;
 
 export interface Signal {
@@ -170,22 +169,22 @@ export interface RunLatticeBody {
   timeframe?: string;
 }
 
-export type LatticeResultRegime =
-  (typeof LatticeResultRegime)[keyof typeof LatticeResultRegime];
+export type LatticeResultRegime = typeof LatticeResultRegime[keyof typeof LatticeResultRegime];
+
 
 export const LatticeResultRegime = {
-  calm: "calm",
-  volatile: "volatile",
-  crisis: "crisis",
+  calm: 'calm',
+  volatile: 'volatile',
+  crisis: 'crisis',
 } as const;
 
-export type BeliefTokenHypothesis =
-  (typeof BeliefTokenHypothesis)[keyof typeof BeliefTokenHypothesis];
+export type BeliefTokenHypothesis = typeof BeliefTokenHypothesis[keyof typeof BeliefTokenHypothesis];
+
 
 export const BeliefTokenHypothesis = {
-  bullish: "bullish",
-  bearish: "bearish",
-  neutral: "neutral",
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
 } as const;
 
 export interface BeliefToken {
@@ -217,13 +216,13 @@ export interface ShapBreakdown {
   geo: number;
 }
 
-export type LatticePredictionDirection =
-  (typeof LatticePredictionDirection)[keyof typeof LatticePredictionDirection];
+export type LatticePredictionDirection = typeof LatticePredictionDirection[keyof typeof LatticePredictionDirection];
+
 
 export const LatticePredictionDirection = {
-  bullish: "bullish",
-  bearish: "bearish",
-  neutral: "neutral",
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
 } as const;
 
 export interface LatticePrediction {
@@ -260,6 +259,59 @@ export interface LatticeResult {
   polymarketIntel?: PolymarketIntelItem[] | null;
 }
 
+export type BeliefHistoryItemFinalDirection = typeof BeliefHistoryItemFinalDirection[keyof typeof BeliefHistoryItemFinalDirection];
+
+
+export const BeliefHistoryItemFinalDirection = {
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
+} as const;
+
+export type BeliefHistoryItemRegime = typeof BeliefHistoryItemRegime[keyof typeof BeliefHistoryItemRegime];
+
+
+export const BeliefHistoryItemRegime = {
+  calm: 'calm',
+  volatile: 'volatile',
+  crisis: 'crisis',
+} as const;
+
+export type BeliefHistoryItemConvictionShift = typeof BeliefHistoryItemConvictionShift[keyof typeof BeliefHistoryItemConvictionShift];
+
+
+export const BeliefHistoryItemConvictionShift = {
+  strengthening: 'strengthening',
+  weakening: 'weakening',
+  reversing: 'reversing',
+  stable: 'stable',
+} as const;
+
+export type BeliefHistoryItemPreviousDirection = typeof BeliefHistoryItemPreviousDirection[keyof typeof BeliefHistoryItemPreviousDirection] | null;
+
+
+export const BeliefHistoryItemPreviousDirection = {
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
+} as const;
+
+export interface BeliefHistoryItem {
+  runId: string;
+  symbol: string;
+  sessionCount: number;
+  finalProbability: number;
+  finalDirection: BeliefHistoryItemFinalDirection;
+  hivemindScore: number;
+  regime: BeliefHistoryItemRegime;
+  delta: number;
+  momentum: number;
+  convictionShift: BeliefHistoryItemConvictionShift;
+  previousRunId?: string | null;
+  previousDirection?: BeliefHistoryItemPreviousDirection;
+  createdAt: string;
+}
+
 export interface AgentState {
   agentId: string;
   agentType: string;
@@ -288,13 +340,13 @@ export interface LatticeTrainingResult {
   message: string;
 }
 
-export type NewsItemSentiment =
-  (typeof NewsItemSentiment)[keyof typeof NewsItemSentiment];
+export type NewsItemSentiment = typeof NewsItemSentiment[keyof typeof NewsItemSentiment];
+
 
 export const NewsItemSentiment = {
-  bullish: "bullish",
-  bearish: "bearish",
-  neutral: "neutral",
+  bullish: 'bullish',
+  bearish: 'bearish',
+  neutral: 'neutral',
 } as const;
 
 export interface NewsItem {
@@ -324,13 +376,13 @@ export interface LatticeChallengeResponse {
   newProbability: number;
 }
 
-export type RegimeStatusRegime =
-  (typeof RegimeStatusRegime)[keyof typeof RegimeStatusRegime];
+export type RegimeStatusRegime = typeof RegimeStatusRegime[keyof typeof RegimeStatusRegime];
+
 
 export const RegimeStatusRegime = {
-  calm: "calm",
-  volatile: "volatile",
-  crisis: "crisis",
+  calm: 'calm',
+  volatile: 'volatile',
+  crisis: 'crisis',
 } as const;
 
 export interface RegimeStatus {
@@ -342,55 +394,24 @@ export interface RegimeStatus {
 }
 
 export type GetMarketHistoryParams = {
-  days?: number;
+days?: number;
 };
 
 export type GetPolymarketMarketsParams = {
-  limit?: number;
+limit?: number;
+live?: boolean;
 };
 
 export type GetNewsParams = {
-  symbol?: string;
+symbol?: string;
+live?: boolean;
 };
 
 export type GetMarketRegimeParams = {
-  symbol: string;
+symbol: string;
 };
-
-export type BeliefHistoryItemFinalDirection =
-  (typeof BeliefHistoryItemFinalDirection)[keyof typeof BeliefHistoryItemFinalDirection];
-
-export const BeliefHistoryItemFinalDirection = {
-  bullish: "bullish",
-  bearish: "bearish",
-  neutral: "neutral",
-} as const;
-
-export type BeliefHistoryItemConvictionShift =
-  (typeof BeliefHistoryItemConvictionShift)[keyof typeof BeliefHistoryItemConvictionShift];
-
-export const BeliefHistoryItemConvictionShift = {
-  strengthening: "strengthening",
-  weakening: "weakening",
-  reversing: "reversing",
-  stable: "stable",
-} as const;
-
-export interface BeliefHistoryItem {
-  runId: string;
-  symbol: string;
-  sessionCount: number;
-  finalProbability: number;
-  finalDirection: BeliefHistoryItemFinalDirection;
-  hivemindScore: number;
-  regime: string;
-  delta: number;
-  momentum: number;
-  convictionShift: BeliefHistoryItemConvictionShift;
-  previousRunId?: string | null;
-  createdAt: string;
-}
 
 export type GetBeliefHistoryParams = {
-  limit?: number;
+limit?: number;
 };
+

@@ -176,6 +176,11 @@ paths:
           schema:
             type: integer
             default: 20
+        - name: live
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Polymarket markets
@@ -197,6 +202,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: live
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: News items
@@ -291,6 +301,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LatticeTrainingResult"
+
+  /lattice/belief-history/{symbol}:
+    get:
+      operationId: getBeliefHistory
+      tags: [lattice]
+      summary: Get belief history for a symbol
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Belief history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BeliefHistoryItem"
 
 components:
   schemas:
@@ -732,6 +768,56 @@ components:
           shapGeo,
           liquidityScore,
           parentIds,
+        ]
+
+    BeliefHistoryItem:
+      type: object
+      properties:
+        runId:
+          type: string
+        symbol:
+          type: string
+        sessionCount:
+          type: integer
+        finalProbability:
+          type: number
+        finalDirection:
+          type: string
+          enum: [bullish, bearish, neutral]
+        hivemindScore:
+          type: number
+        regime:
+          type: string
+          enum: [calm, volatile, crisis]
+        delta:
+          type: number
+        momentum:
+          type: number
+        convictionShift:
+          type: string
+          enum: [strengthening, weakening, reversing, stable]
+        previousRunId:
+          type: string
+          nullable: true
+        previousDirection:
+          type: string
+          enum: [bullish, bearish, neutral]
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        [
+          runId,
+          symbol,
+          sessionCount,
+          finalProbability,
+          finalDirection,
+          hivemindScore,
+          regime,
+          delta,
+          momentum,
+          convictionShift,
+          createdAt,
         ]
 
     DebateRound:

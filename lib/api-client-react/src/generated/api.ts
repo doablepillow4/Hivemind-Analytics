@@ -5,7 +5,10 @@
  * Hivemind Predictor API
  * OpenAPI spec version: 0.1.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryFunction,
@@ -13,8 +16,8 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   AgentState,
@@ -40,1363 +43,1242 @@ import type {
   Prediction,
   PredictionSummary,
   RegimeStatus,
-  RunLatticeBody,
-} from "./api.schemas";
+  RunLatticeBody
+} from './api.schemas';
 
-import { customFetch } from "../custom-fetch";
-import type { ErrorType, BodyType } from "../custom-fetch";
+import { customFetch } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+      type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 /**
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
-  return `/api/healthz`;
-};
 
-export const healthCheck = async (
-  options?: RequestInit,
-): Promise<HealthStatus> => {
-  return customFetch<HealthStatus>(getHealthCheckUrl(), {
+
+  
+
+  return `/api/healthz`
+}
+
+export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
+  
+  return customFetch<HealthStatus>(getHealthCheckUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
 
 export const getHealthCheckQueryKey = () => {
-  return [`/api/healthz`] as const;
-};
+    return [
+    `/api/healthz`
+    ] as const;
+    }
 
-export const getHealthCheckQueryOptions = <
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
-    signal,
-  }) => healthCheck({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type HealthCheckQueryResult = NonNullable<
-  Awaited<ReturnType<typeof healthCheck>>
->;
-export type HealthCheckQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
+export type HealthCheckQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Health check
  */
 
-export function useHealthCheck<
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof healthCheck>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getHealthCheckQueryOptions(options);
+export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Get current prices for all tracked symbols
  */
 export const getGetMarketPricesUrl = () => {
-  return `/api/market/prices`;
-};
 
-export const getMarketPrices = async (
-  options?: RequestInit,
-): Promise<MarketPrice[]> => {
-  return customFetch<MarketPrice[]>(getGetMarketPricesUrl(), {
+
+  
+
+  return `/api/market/prices`
+}
+
+export const getMarketPrices = async ( options?: RequestInit): Promise<MarketPrice[]> => {
+  
+  return customFetch<MarketPrice[]>(getGetMarketPricesUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
 
 export const getGetMarketPricesQueryKey = () => {
-  return [`/api/market/prices`] as const;
-};
+    return [
+    `/api/market/prices`
+    ] as const;
+    }
 
-export const getGetMarketPricesQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMarketPrices>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketPrices>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetMarketPricesQueryOptions = <TData = Awaited<ReturnType<typeof getMarketPrices>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetMarketPricesQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketPrices>>> = ({
-    signal,
-  }) => getMarketPrices({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketPricesQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketPrices>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetMarketPricesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMarketPrices>>
->;
-export type GetMarketPricesQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketPrices>>> = ({ signal }) => getMarketPrices({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketPrices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketPricesQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketPrices>>>
+export type GetMarketPricesQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get current prices for all tracked symbols
  */
 
-export function useGetMarketPrices<
-  TData = Awaited<ReturnType<typeof getMarketPrices>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketPrices>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMarketPricesQueryOptions(options);
+export function useGetMarketPrices<TData = Awaited<ReturnType<typeof getMarketPrices>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetMarketPricesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+
+
+
+
 /**
  * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
  */
-export const getGetMarketQuoteUrl = (symbol: string) => {
-  return `/api/market/quote/${symbol}`;
-};
+export const getGetMarketQuoteUrl = (symbol: string,) => {
 
-export const getMarketQuote = async (
-  symbol: string,
-  options?: RequestInit,
-): Promise<MarketPrice> => {
-  return customFetch<MarketPrice>(getGetMarketQuoteUrl(symbol), {
+
+  
+
+  return `/api/market/quote/${symbol}`
+}
+
+export const getMarketQuote = async (symbol: string, options?: RequestInit): Promise<MarketPrice> => {
+  
+  return customFetch<MarketPrice>(getGetMarketQuoteUrl(symbol),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
 
-export const getGetMarketQuoteQueryKey = (symbol: string) => {
-  return [`/api/market/quote/${symbol}`] as const;
-};
 
-export const getGetMarketQuoteQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMarketQuote>>,
-  TError = ErrorType<ErrorResponse>,
->(
-  symbol: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketQuote>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
+
+
+export const getGetMarketQuoteQueryKey = (symbol: string,) => {
+    return [
+    `/api/market/quote/${symbol}`
+    ] as const;
+    }
+
+    
+export const getGetMarketQuoteQueryOptions = <TData = Awaited<ReturnType<typeof getMarketQuote>>, TError = ErrorType<ErrorResponse>>(symbol: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMarketQuoteQueryKey(symbol);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketQuote>>> = ({
-    signal,
-  }) => getMarketQuote(symbol, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketQuoteQueryKey(symbol);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!symbol,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketQuote>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetMarketQuoteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMarketQuote>>
->;
-export type GetMarketQuoteQueryError = ErrorType<ErrorResponse>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketQuote>>> = ({ signal }) => getMarketQuote(symbol, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(symbol), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketQuote>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketQuoteQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketQuote>>>
+export type GetMarketQuoteQueryError = ErrorType<ErrorResponse>
+
 
 /**
  * @summary Get live quote for any ticker (stocks or crypto, even outside the default list)
  */
 
-export function useGetMarketQuote<
-  TData = Awaited<ReturnType<typeof getMarketQuote>>,
-  TError = ErrorType<ErrorResponse>,
->(
-  symbol: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketQuote>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMarketQuoteQueryOptions(symbol, options);
+export function useGetMarketQuote<TData = Awaited<ReturnType<typeof getMarketQuote>>, TError = ErrorType<ErrorResponse>>(
+ symbol: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetMarketQuoteQueryOptions(symbol,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Get historical price data for a symbol
  */
-export const getGetMarketHistoryUrl = (
-  symbol: string,
-  params?: GetMarketHistoryParams,
-) => {
+export const getGetMarketHistoryUrl = (symbol: string,
+    params?: GetMarketHistoryParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/market/history/${symbol}?${stringifiedParams}`
-    : `/api/market/history/${symbol}`;
-};
+  return stringifiedParams.length > 0 ? `/api/market/history/${symbol}?${stringifiedParams}` : `/api/market/history/${symbol}`
+}
 
-export const getMarketHistory = async (
-  symbol: string,
-  params?: GetMarketHistoryParams,
-  options?: RequestInit,
-): Promise<MarketHistory> => {
-  return customFetch<MarketHistory>(getGetMarketHistoryUrl(symbol, params), {
+export const getMarketHistory = async (symbol: string,
+    params?: GetMarketHistoryParams, options?: RequestInit): Promise<MarketHistory> => {
+  
+  return customFetch<MarketHistory>(getGetMarketHistoryUrl(symbol,params),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
 
-export const getGetMarketHistoryQueryKey = (
-  symbol: string,
-  params?: GetMarketHistoryParams,
+
+
+
+export const getGetMarketHistoryQueryKey = (symbol: string,
+    params?: GetMarketHistoryParams,) => {
+    return [
+    `/api/market/history/${symbol}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetMarketHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getMarketHistory>>, TError = ErrorType<unknown>>(symbol: string,
+    params?: GetMarketHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  return [
-    `/api/market/history/${symbol}`,
-    ...(params ? [params] : []),
-  ] as const;
-};
 
-export const getGetMarketHistoryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMarketHistory>>,
-  TError = ErrorType<unknown>,
->(
-  symbol: string,
-  params?: GetMarketHistoryParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketHistory>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetMarketHistoryQueryKey(symbol, params);
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketHistoryQueryKey(symbol,params);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getMarketHistory>>
-  > = ({ signal }) =>
-    getMarketHistory(symbol, params, { signal, ...requestOptions });
+  
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!symbol,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketHistory>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketHistory>>> = ({ signal }) => getMarketHistory(symbol,params, { signal, ...requestOptions });
 
-export type GetMarketHistoryQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMarketHistory>>
->;
-export type GetMarketHistoryQueryError = ErrorType<unknown>;
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(symbol), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketHistory>>>
+export type GetMarketHistoryQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get historical price data for a symbol
  */
 
-export function useGetMarketHistory<
-  TData = Awaited<ReturnType<typeof getMarketHistory>>,
-  TError = ErrorType<unknown>,
->(
-  symbol: string,
-  params?: GetMarketHistoryParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketHistory>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMarketHistoryQueryOptions(symbol, params, options);
+export function useGetMarketHistory<TData = Awaited<ReturnType<typeof getMarketHistory>>, TError = ErrorType<unknown>>(
+ symbol: string,
+    params?: GetMarketHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetMarketHistoryQueryOptions(symbol,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Get all predictions with confidence scores
  */
 export const getGetPredictionsUrl = () => {
-  return `/api/predictions`;
-};
 
-export const getPredictions = async (
-  options?: RequestInit,
-): Promise<Prediction[]> => {
-  return customFetch<Prediction[]>(getGetPredictionsUrl(), {
+
+  
+
+  return `/api/predictions`
+}
+
+export const getPredictions = async ( options?: RequestInit): Promise<Prediction[]> => {
+  
+  return customFetch<Prediction[]>(getGetPredictionsUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
 
 export const getGetPredictionsQueryKey = () => {
-  return [`/api/predictions`] as const;
-};
+    return [
+    `/api/predictions`
+    ] as const;
+    }
 
-export const getGetPredictionsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPredictions>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetPredictionsQueryOptions = <TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetPredictionsQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPredictions>>> = ({
-    signal,
-  }) => getPredictions({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetPredictionsQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictions>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetPredictionsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPredictions>>
->;
-export type GetPredictionsQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPredictions>>> = ({ signal }) => getPredictions({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPredictionsQueryResult = NonNullable<Awaited<ReturnType<typeof getPredictions>>>
+export type GetPredictionsQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get all predictions with confidence scores
  */
 
-export function useGetPredictions<
-  TData = Awaited<ReturnType<typeof getPredictions>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictions>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPredictionsQueryOptions(options);
+export function useGetPredictions<TData = Awaited<ReturnType<typeof getPredictions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetPredictionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Generate a new Hivemind prediction for a symbol
  */
 export const getCreatePredictionUrl = () => {
-  return `/api/predictions`;
-};
 
-export const createPrediction = async (
-  createPredictionBody: CreatePredictionBody,
-  options?: RequestInit,
-): Promise<Prediction> => {
-  return customFetch<Prediction>(getCreatePredictionUrl(), {
+
+  
+
+  return `/api/predictions`
+}
+
+export const createPrediction = async (createPredictionBody: CreatePredictionBody, options?: RequestInit): Promise<Prediction> => {
+  
+  return customFetch<Prediction>(getCreatePredictionUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createPredictionBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPredictionBody,)
+  }
+);}
+  
 
-export const getCreatePredictionMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPrediction>>,
-    TError,
-    { data: BodyType<CreatePredictionBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPrediction>>,
-  TError,
-  { data: BodyType<CreatePredictionBody> },
-  TContext
-> => {
-  const mutationKey = ["createPrediction"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPrediction>>,
-    { data: BodyType<CreatePredictionBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return createPrediction(data, requestOptions);
-  };
+export const getCreatePredictionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPrediction>>, TError,{data: BodyType<CreatePredictionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPrediction>>, TError,{data: BodyType<CreatePredictionBody>}, TContext> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+const mutationKey = ['createPrediction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type CreatePredictionMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createPrediction>>
->;
-export type CreatePredictionMutationBody = BodyType<CreatePredictionBody>;
-export type CreatePredictionMutationError = ErrorType<unknown>;
+      
 
-/**
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPrediction>>, {data: BodyType<CreatePredictionBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPrediction(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePredictionMutationResult = NonNullable<Awaited<ReturnType<typeof createPrediction>>>
+    export type CreatePredictionMutationBody = BodyType<CreatePredictionBody>
+    export type CreatePredictionMutationError = ErrorType<unknown>
+
+    /**
  * @summary Generate a new Hivemind prediction for a symbol
  */
-export const useCreatePrediction = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPrediction>>,
-    TError,
-    { data: BodyType<CreatePredictionBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof createPrediction>>,
-  TError,
-  { data: BodyType<CreatePredictionBody> },
-  TContext
-> => {
-  return useMutation(getCreatePredictionMutationOptions(options));
-};
-
+export const useCreatePrediction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPrediction>>, TError,{data: BodyType<CreatePredictionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPrediction>>,
+        TError,
+        {data: BodyType<CreatePredictionBody>},
+        TContext
+      > => {
+      return useMutation(getCreatePredictionMutationOptions(options));
+    }
+    
 /**
  * @summary Get prediction accuracy summary and self-improvement stats
  */
 export const getGetPredictionsSummaryUrl = () => {
-  return `/api/predictions/summary`;
-};
 
-export const getPredictionsSummary = async (
-  options?: RequestInit,
-): Promise<PredictionSummary> => {
-  return customFetch<PredictionSummary>(getGetPredictionsSummaryUrl(), {
+
+  
+
+  return `/api/predictions/summary`
+}
+
+export const getPredictionsSummary = async ( options?: RequestInit): Promise<PredictionSummary> => {
+  
+  return customFetch<PredictionSummary>(getGetPredictionsSummaryUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
 
 export const getGetPredictionsSummaryQueryKey = () => {
-  return [`/api/predictions/summary`] as const;
-};
+    return [
+    `/api/predictions/summary`
+    ] as const;
+    }
 
-export const getGetPredictionsSummaryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPredictionsSummary>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictionsSummary>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetPredictionsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getPredictionsSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictionsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetPredictionsSummaryQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPredictionsSummary>>
-  > = ({ signal }) => getPredictionsSummary({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetPredictionsSummaryQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictionsSummary>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetPredictionsSummaryQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPredictionsSummary>>
->;
-export type GetPredictionsSummaryQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPredictionsSummary>>> = ({ signal }) => getPredictionsSummary({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPredictionsSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPredictionsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getPredictionsSummary>>>
+export type GetPredictionsSummaryQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get prediction accuracy summary and self-improvement stats
  */
 
-export function useGetPredictionsSummary<
-  TData = Awaited<ReturnType<typeof getPredictionsSummary>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictionsSummary>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPredictionsSummaryQueryOptions(options);
+export function useGetPredictionsSummary<TData = Awaited<ReturnType<typeof getPredictionsSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPredictionsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetPredictionsSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Run Monte Carlo simulation for event impact
  */
 export const getRunMonteCarloUrl = () => {
-  return `/api/simulator/monte-carlo`;
-};
 
-export const runMonteCarlo = async (
-  monteCarloBody: MonteCarloBody,
-  options?: RequestInit,
-): Promise<MonteCarloResult> => {
-  return customFetch<MonteCarloResult>(getRunMonteCarloUrl(), {
+
+  
+
+  return `/api/simulator/monte-carlo`
+}
+
+export const runMonteCarlo = async (monteCarloBody: MonteCarloBody, options?: RequestInit): Promise<MonteCarloResult> => {
+  
+  return customFetch<MonteCarloResult>(getRunMonteCarloUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(monteCarloBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      monteCarloBody,)
+  }
+);}
+  
 
-export const getRunMonteCarloMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runMonteCarlo>>,
-    TError,
-    { data: BodyType<MonteCarloBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof runMonteCarlo>>,
-  TError,
-  { data: BodyType<MonteCarloBody> },
-  TContext
-> => {
-  const mutationKey = ["runMonteCarlo"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof runMonteCarlo>>,
-    { data: BodyType<MonteCarloBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return runMonteCarlo(data, requestOptions);
-  };
+export const getRunMonteCarloMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runMonteCarlo>>, TError,{data: BodyType<MonteCarloBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runMonteCarlo>>, TError,{data: BodyType<MonteCarloBody>}, TContext> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+const mutationKey = ['runMonteCarlo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type RunMonteCarloMutationResult = NonNullable<
-  Awaited<ReturnType<typeof runMonteCarlo>>
->;
-export type RunMonteCarloMutationBody = BodyType<MonteCarloBody>;
-export type RunMonteCarloMutationError = ErrorType<unknown>;
+      
 
-/**
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runMonteCarlo>>, {data: BodyType<MonteCarloBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runMonteCarlo(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunMonteCarloMutationResult = NonNullable<Awaited<ReturnType<typeof runMonteCarlo>>>
+    export type RunMonteCarloMutationBody = BodyType<MonteCarloBody>
+    export type RunMonteCarloMutationError = ErrorType<unknown>
+
+    /**
  * @summary Run Monte Carlo simulation for event impact
  */
-export const useRunMonteCarlo = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runMonteCarlo>>,
-    TError,
-    { data: BodyType<MonteCarloBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof runMonteCarlo>>,
-  TError,
-  { data: BodyType<MonteCarloBody> },
-  TContext
-> => {
-  return useMutation(getRunMonteCarloMutationOptions(options));
-};
-
+export const useRunMonteCarlo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runMonteCarlo>>, TError,{data: BodyType<MonteCarloBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runMonteCarlo>>,
+        TError,
+        {data: BodyType<MonteCarloBody>},
+        TContext
+      > => {
+      return useMutation(getRunMonteCarloMutationOptions(options));
+    }
+    
 /**
  * @summary Get top Polymarket prediction markets
  */
-export const getGetPolymarketMarketsUrl = (
-  params?: GetPolymarketMarketsParams,
-) => {
+export const getGetPolymarketMarketsUrl = (params?: GetPolymarketMarketsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/polymarket/markets?${stringifiedParams}`
-    : `/api/polymarket/markets`;
-};
+  return stringifiedParams.length > 0 ? `/api/polymarket/markets?${stringifiedParams}` : `/api/polymarket/markets`
+}
 
-export const getPolymarketMarkets = async (
-  params?: GetPolymarketMarketsParams,
-  options?: RequestInit,
-): Promise<PolymarketMarket[]> => {
-  return customFetch<PolymarketMarket[]>(getGetPolymarketMarketsUrl(params), {
+export const getPolymarketMarkets = async (params?: GetPolymarketMarketsParams, options?: RequestInit): Promise<PolymarketMarket[]> => {
+  
+  return customFetch<PolymarketMarket[]>(getGetPolymarketMarketsUrl(params),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
 
-export const getGetPolymarketMarketsQueryKey = (
-  params?: GetPolymarketMarketsParams,
+
+
+
+export const getGetPolymarketMarketsQueryKey = (params?: GetPolymarketMarketsParams,) => {
+    return [
+    `/api/polymarket/markets`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetPolymarketMarketsQueryOptions = <TData = Awaited<ReturnType<typeof getPolymarketMarkets>>, TError = ErrorType<unknown>>(params?: GetPolymarketMarketsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPolymarketMarkets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  return [`/api/polymarket/markets`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetPolymarketMarketsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPolymarketMarkets>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetPolymarketMarketsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getPolymarketMarkets>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetPolymarketMarketsQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetPolymarketMarketsQueryKey(params);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPolymarketMarkets>>
-  > = ({ signal }) =>
-    getPolymarketMarkets(params, { signal, ...requestOptions });
+  
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPolymarketMarkets>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPolymarketMarkets>>> = ({ signal }) => getPolymarketMarkets(params, { signal, ...requestOptions });
 
-export type GetPolymarketMarketsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPolymarketMarkets>>
->;
-export type GetPolymarketMarketsQueryError = ErrorType<unknown>;
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPolymarketMarkets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPolymarketMarketsQueryResult = NonNullable<Awaited<ReturnType<typeof getPolymarketMarkets>>>
+export type GetPolymarketMarketsQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get top Polymarket prediction markets
  */
 
-export function useGetPolymarketMarkets<
-  TData = Awaited<ReturnType<typeof getPolymarketMarkets>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetPolymarketMarketsParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getPolymarketMarkets>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPolymarketMarketsQueryOptions(params, options);
+export function useGetPolymarketMarkets<TData = Awaited<ReturnType<typeof getPolymarketMarkets>>, TError = ErrorType<unknown>>(
+ params?: GetPolymarketMarketsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPolymarketMarkets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetPolymarketMarketsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+
+
+
+
 /**
  * @summary Get latest geopolitical and financial news
  */
-export const getGetNewsUrl = (params?: GetNewsParams) => {
+export const getGetNewsUrl = (params?: GetNewsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/news?${stringifiedParams}`
-    : `/api/news`;
-};
+  return stringifiedParams.length > 0 ? `/api/news?${stringifiedParams}` : `/api/news`
+}
 
-export const getNews = async (
-  params?: GetNewsParams,
-  options?: RequestInit,
-): Promise<NewsItem[]> => {
-  return customFetch<NewsItem[]>(getGetNewsUrl(params), {
+export const getNews = async (params?: GetNewsParams, options?: RequestInit): Promise<NewsItem[]> => {
+  
+  return customFetch<NewsItem[]>(getGetNewsUrl(params),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
 
-export const getGetNewsQueryKey = (params?: GetNewsParams) => {
-  return [`/api/news`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetNewsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getNews>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetNewsParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
+
+
+export const getGetNewsQueryKey = (params?: GetNewsParams,) => {
+    return [
+    `/api/news`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetNewsQueryOptions = <TData = Awaited<ReturnType<typeof getNews>>, TError = ErrorType<unknown>>(params?: GetNewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetNewsQueryKey(params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getNews>>> = ({
-    signal,
-  }) => getNews(params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetNewsQueryKey(params);
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getNews>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetNewsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getNews>>
->;
-export type GetNewsQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNews>>> = ({ signal }) => getNews(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNewsQueryResult = NonNullable<Awaited<ReturnType<typeof getNews>>>
+export type GetNewsQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get latest geopolitical and financial news
  */
 
-export function useGetNews<
-  TData = Awaited<ReturnType<typeof getNews>>,
-  TError = ErrorType<unknown>,
->(
-  params?: GetNewsParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetNewsQueryOptions(params, options);
+export function useGetNews<TData = Awaited<ReturnType<typeof getNews>>, TError = ErrorType<unknown>>(
+ params?: GetNewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetNewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
  */
 export const getRunLatticeUrl = () => {
-  return `/api/lattice/run`;
-};
 
-export const runLattice = async (
-  runLatticeBody: RunLatticeBody,
-  options?: RequestInit,
-): Promise<LatticeResult> => {
-  return customFetch<LatticeResult>(getRunLatticeUrl(), {
+
+  
+
+  return `/api/lattice/run`
+}
+
+export const runLattice = async (runLatticeBody: RunLatticeBody, options?: RequestInit): Promise<LatticeResult> => {
+  
+  return customFetch<LatticeResult>(getRunLatticeUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(runLatticeBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      runLatticeBody,)
+  }
+);}
+  
 
-export const getRunLatticeMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runLattice>>,
-    TError,
-    { data: BodyType<RunLatticeBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof runLattice>>,
-  TError,
-  { data: BodyType<RunLatticeBody> },
-  TContext
-> => {
-  const mutationKey = ["runLattice"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof runLattice>>,
-    { data: BodyType<RunLatticeBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return runLattice(data, requestOptions);
-  };
+export const getRunLatticeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLattice>>, TError,{data: BodyType<RunLatticeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runLattice>>, TError,{data: BodyType<RunLatticeBody>}, TContext> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+const mutationKey = ['runLattice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type RunLatticeMutationResult = NonNullable<
-  Awaited<ReturnType<typeof runLattice>>
->;
-export type RunLatticeMutationBody = BodyType<RunLatticeBody>;
-export type RunLatticeMutationError = ErrorType<unknown>;
+      
 
-/**
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runLattice>>, {data: BodyType<RunLatticeBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runLattice(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunLatticeMutationResult = NonNullable<Awaited<ReturnType<typeof runLattice>>>
+    export type RunLatticeMutationBody = BodyType<RunLatticeBody>
+    export type RunLatticeMutationError = ErrorType<unknown>
+
+    /**
  * @summary Run Hivemind Predictive Lattice (HPL-HPA v2) for a symbol
  */
-export const useRunLattice = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runLattice>>,
-    TError,
-    { data: BodyType<RunLatticeBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof runLattice>>,
-  TError,
-  { data: BodyType<RunLatticeBody> },
-  TContext
-> => {
-  return useMutation(getRunLatticeMutationOptions(options));
-};
-
+export const useRunLattice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLattice>>, TError,{data: BodyType<RunLatticeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runLattice>>,
+        TError,
+        {data: BodyType<RunLatticeBody>},
+        TContext
+      > => {
+      return useMutation(getRunLatticeMutationOptions(options));
+    }
+    
 /**
  * @summary Challenge a lattice agent with a new argument
  */
 export const getLatticeChallengeUrl = () => {
-  return `/api/lattice/challenge`;
-};
 
-export const latticeChallenge = async (
-  latticeChallengeBody: LatticeChallengeBody,
-  options?: RequestInit,
-): Promise<LatticeChallengeResponse> => {
-  return customFetch<LatticeChallengeResponse>(getLatticeChallengeUrl(), {
+
+  
+
+  return `/api/lattice/challenge`
+}
+
+export const latticeChallenge = async (latticeChallengeBody: LatticeChallengeBody, options?: RequestInit): Promise<LatticeChallengeResponse> => {
+  
+  return customFetch<LatticeChallengeResponse>(getLatticeChallengeUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(latticeChallengeBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      latticeChallengeBody,)
+  }
+);}
+  
 
-export const getLatticeChallengeMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof latticeChallenge>>,
-    TError,
-    { data: BodyType<LatticeChallengeBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof latticeChallenge>>,
-  TError,
-  { data: BodyType<LatticeChallengeBody> },
-  TContext
-> => {
-  const mutationKey = ["latticeChallenge"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof latticeChallenge>>,
-    { data: BodyType<LatticeChallengeBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return latticeChallenge(data, requestOptions);
-  };
+export const getLatticeChallengeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof latticeChallenge>>, TError,{data: BodyType<LatticeChallengeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof latticeChallenge>>, TError,{data: BodyType<LatticeChallengeBody>}, TContext> => {
 
-  return { mutationFn, ...mutationOptions };
-};
+const mutationKey = ['latticeChallenge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type LatticeChallengeMutationResult = NonNullable<
-  Awaited<ReturnType<typeof latticeChallenge>>
->;
-export type LatticeChallengeMutationBody = BodyType<LatticeChallengeBody>;
-export type LatticeChallengeMutationError = ErrorType<unknown>;
+      
 
-/**
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof latticeChallenge>>, {data: BodyType<LatticeChallengeBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  latticeChallenge(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LatticeChallengeMutationResult = NonNullable<Awaited<ReturnType<typeof latticeChallenge>>>
+    export type LatticeChallengeMutationBody = BodyType<LatticeChallengeBody>
+    export type LatticeChallengeMutationError = ErrorType<unknown>
+
+    /**
  * @summary Challenge a lattice agent with a new argument
  */
-export const useLatticeChallenge = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof latticeChallenge>>,
-    TError,
-    { data: BodyType<LatticeChallengeBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof latticeChallenge>>,
-  TError,
-  { data: BodyType<LatticeChallengeBody> },
-  TContext
-> => {
-  return useMutation(getLatticeChallengeMutationOptions(options));
-};
-
+export const useLatticeChallenge = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof latticeChallenge>>, TError,{data: BodyType<LatticeChallengeBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof latticeChallenge>>,
+        TError,
+        {data: BodyType<LatticeChallengeBody>},
+        TContext
+      > => {
+      return useMutation(getLatticeChallengeMutationOptions(options));
+    }
+    
 /**
  * @summary Get agent reputation and calibration states
  */
 export const getGetLatticeAgentsUrl = () => {
-  return `/api/lattice/agents`;
-};
 
-export const getLatticeAgents = async (
-  options?: RequestInit,
-): Promise<AgentState[]> => {
-  return customFetch<AgentState[]>(getGetLatticeAgentsUrl(), {
+
+  
+
+  return `/api/lattice/agents`
+}
+
+export const getLatticeAgents = async ( options?: RequestInit): Promise<AgentState[]> => {
+  
+  return customFetch<AgentState[]>(getGetLatticeAgentsUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
 
 export const getGetLatticeAgentsQueryKey = () => {
-  return [`/api/lattice/agents`] as const;
-};
+    return [
+    `/api/lattice/agents`
+    ] as const;
+    }
 
-export const getGetLatticeAgentsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getLatticeAgents>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getLatticeAgents>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetLatticeAgentsQueryOptions = <TData = Awaited<ReturnType<typeof getLatticeAgents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLatticeAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetLatticeAgentsQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getLatticeAgents>>
-  > = ({ signal }) => getLatticeAgents({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetLatticeAgentsQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getLatticeAgents>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetLatticeAgentsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getLatticeAgents>>
->;
-export type GetLatticeAgentsQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLatticeAgents>>> = ({ signal }) => getLatticeAgents({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLatticeAgents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLatticeAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof getLatticeAgents>>>
+export type GetLatticeAgentsQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Get agent reputation and calibration states
  */
 
-export function useGetLatticeAgents<
-  TData = Awaited<ReturnType<typeof getLatticeAgents>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getLatticeAgents>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetLatticeAgentsQueryOptions(options);
+export function useGetLatticeAgents<TData = Awaited<ReturnType<typeof getLatticeAgents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLatticeAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetLatticeAgentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+
+
+
+
 /**
  * @summary Detect current volatility regime for a symbol
  */
-export const getGetMarketRegimeUrl = (params: GetMarketRegimeParams) => {
+export const getGetMarketRegimeUrl = (params: GetMarketRegimeParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `/api/lattice/regime?${stringifiedParams}`
-    : `/api/lattice/regime`;
-};
+  return stringifiedParams.length > 0 ? `/api/lattice/regime?${stringifiedParams}` : `/api/lattice/regime`
+}
 
-export const getMarketRegime = async (
-  params: GetMarketRegimeParams,
-  options?: RequestInit,
-): Promise<RegimeStatus> => {
-  return customFetch<RegimeStatus>(getGetMarketRegimeUrl(params), {
+export const getMarketRegime = async (params: GetMarketRegimeParams, options?: RequestInit): Promise<RegimeStatus> => {
+  
+  return customFetch<RegimeStatus>(getGetMarketRegimeUrl(params),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+  
 
-export const getGetMarketRegimeQueryKey = (params?: GetMarketRegimeParams) => {
-  return [`/api/lattice/regime`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetMarketRegimeQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMarketRegime>>,
-  TError = ErrorType<unknown>,
->(
-  params: GetMarketRegimeParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketRegime>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
+
+
+export const getGetMarketRegimeQueryKey = (params?: GetMarketRegimeParams,) => {
+    return [
+    `/api/lattice/regime`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetMarketRegimeQueryOptions = <TData = Awaited<ReturnType<typeof getMarketRegime>>, TError = ErrorType<unknown>>(params: GetMarketRegimeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketRegime>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMarketRegimeQueryKey(params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketRegime>>> = ({
-    signal,
-  }) => getMarketRegime(params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketRegimeQueryKey(params);
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMarketRegime>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type GetMarketRegimeQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMarketRegime>>
->;
-export type GetMarketRegimeQueryError = ErrorType<unknown>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketRegime>>> = ({ signal }) => getMarketRegime(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketRegime>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketRegimeQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketRegime>>>
+export type GetMarketRegimeQueryError = ErrorType<unknown>
+
 
 /**
  * @summary Detect current volatility regime for a symbol
  */
 
-export function useGetMarketRegime<
-  TData = Awaited<ReturnType<typeof getMarketRegime>>,
-  TError = ErrorType<unknown>,
->(
-  params: GetMarketRegimeParams,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getMarketRegime>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMarketRegimeQueryOptions(params, options);
+export function useGetMarketRegime<TData = Awaited<ReturnType<typeof getMarketRegime>>, TError = ErrorType<unknown>>(
+ params: GetMarketRegimeParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketRegime>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getGetMarketRegimeQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
 
 /**
  * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
  */
 export const getRunLatticeTrainingUrl = () => {
-  return `/api/lattice/train`;
-};
 
-export const runLatticeTraining = async (
-  options?: RequestInit,
-): Promise<LatticeTrainingResult> => {
-  return customFetch<LatticeTrainingResult>(getRunLatticeTrainingUrl(), {
+
+  
+
+  return `/api/lattice/train`
+}
+
+export const runLatticeTraining = async ( options?: RequestInit): Promise<LatticeTrainingResult> => {
+  
+  return customFetch<LatticeTrainingResult>(getRunLatticeTrainingUrl(),
+  {      
     ...options,
-    method: "POST",
-  });
-};
+    method: 'POST'
+    
+    
+  }
+);}
+  
 
-export const getRunLatticeTrainingMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runLatticeTraining>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof runLatticeTraining>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["runLatticeTraining"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof runLatticeTraining>>,
-    void
-  > = () => {
-    return runLatticeTraining(requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRunLatticeTrainingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLatticeTraining>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runLatticeTraining>>, TError,void, TContext> => {
 
-export type RunLatticeTrainingMutationResult = NonNullable<
-  Awaited<ReturnType<typeof runLatticeTraining>>
->;
+const mutationKey = ['runLatticeTraining'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type RunLatticeTrainingMutationError = ErrorType<unknown>;
+      
 
-/**
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runLatticeTraining>>, void> = () => {
+          
+
+          return  runLatticeTraining(requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunLatticeTrainingMutationResult = NonNullable<Awaited<ReturnType<typeof runLatticeTraining>>>
+    
+    export type RunLatticeTrainingMutationError = ErrorType<unknown>
+
+    /**
  * @summary Resolve expired predictions and update agent reputations (self-improvement cycle)
  */
-export const useRunLatticeTraining = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof runLatticeTraining>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof runLatticeTraining>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getRunLatticeTrainingMutationOptions(options));
-};
+export const useRunLatticeTraining = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runLatticeTraining>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runLatticeTraining>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunLatticeTrainingMutationOptions(options));
+    }
+    
+/**
+ * @summary Get belief history for a symbol
+ */
+export const getGetBeliefHistoryUrl = (symbol: string,
+    params?: GetBeliefHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
 
-// ─── Belief History ───────────────────────────────────────────────────────────
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lattice/belief-history/${symbol}?${stringifiedParams}` : `/api/lattice/belief-history/${symbol}`
+}
+
+export const getBeliefHistory = async (symbol: string,
+    params?: GetBeliefHistoryParams, options?: RequestInit): Promise<BeliefHistoryItem[]> => {
+  
+  return customFetch<BeliefHistoryItem[]>(getGetBeliefHistoryUrl(symbol,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
+
+export const getGetBeliefHistoryQueryKey = (symbol: string,
+    params?: GetBeliefHistoryParams,) => {
+    return [
+    `/api/lattice/belief-history/${symbol}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetBeliefHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getBeliefHistory>>, TError = ErrorType<unknown>>(symbol: string,
+    params?: GetBeliefHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBeliefHistoryQueryKey(symbol,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBeliefHistory>>> = ({ signal }) => getBeliefHistory(symbol,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(symbol), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBeliefHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getBeliefHistory>>>
+export type GetBeliefHistoryQueryError = ErrorType<unknown>
+
 
 /**
- * @summary Get conviction momentum history for a symbol (v3 runs only)
+ * @summary Get belief history for a symbol
  */
-export const getBeliefHistoryUrl = (symbol: string) => {
-  return `/api/lattice/belief-history/${symbol}`;
-};
 
-export const getBeliefHistory = async (
-  symbol: string,
-  params?: GetBeliefHistoryParams,
-  options?: RequestInit,
-): Promise<BeliefHistoryItem[]> => {
-  let url = getBeliefHistoryUrl(symbol);
-  if (params?.limit != null) url += `?limit=${params.limit}`;
-  return customFetch<BeliefHistoryItem[]>(url, { ...options, method: "GET" });
-};
+export function useGetBeliefHistory<TData = Awaited<ReturnType<typeof getBeliefHistory>>, TError = ErrorType<unknown>>(
+ symbol: string,
+    params?: GetBeliefHistoryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-export const getGetBeliefHistoryQueryKey = (
-  symbol: string,
-  params?: GetBeliefHistoryParams,
-) => {
-  return [`/api/lattice/belief-history/${symbol}`, ...(params ? [params] : [])] as const;
-};
+  const queryOptions = getGetBeliefHistoryQueryOptions(symbol,params,options)
 
-export const getGetBeliefHistoryQueryOptions = <
-  TData = Awaited<ReturnType<typeof getBeliefHistory>>,
-  TError = ErrorType<unknown>,
->(
-  symbol: string,
-  params?: GetBeliefHistoryParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getGetBeliefHistoryQueryKey(symbol, params);
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getBeliefHistory>>> = ({ signal }) =>
-    getBeliefHistory(symbol, params, { signal, ...requestOptions });
-  return { queryKey, queryFn, enabled: !!symbol, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getBeliefHistory>>,
-    TError,
-    TData
-  >;
-};
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-export type GetBeliefHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getBeliefHistory>>>;
-export type GetBeliefHistoryQueryError = ErrorType<unknown>;
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
-export const useGetBeliefHistory = <
-  TData = Awaited<ReturnType<typeof getBeliefHistory>>,
-  TError = ErrorType<unknown>,
->(
-  symbol: string,
-  params?: GetBeliefHistoryParams,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getBeliefHistory>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const queryOptions = getGetBeliefHistoryQueryOptions(symbol, params, options);
-  const query = useQuery(queryOptions);
-  // @ts-expect-error queryKey is added
-  query.queryKey = queryOptions.queryKey;
-  return query as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-};
+
+
+
+

@@ -1704,8 +1704,8 @@ export default function Lattice() {
   const { data: agents } = useGetLatticeAgents({
     query: { queryKey: getGetLatticeAgentsQueryKey() },
   });
-  const { data: prices } = useGetMarketPrices({
-    query: { queryKey: getGetMarketPricesQueryKey() },
+  const { data: prices } = useGetMarketPrices({ live: true }, {
+    query: { queryKey: getGetMarketPricesQueryKey({ live: true }), refetchOnMount: "always", staleTime: 0 },
   });
   const { agentUpvotes, upvoteAgent, resetUpvotes } = useAppStore();
 

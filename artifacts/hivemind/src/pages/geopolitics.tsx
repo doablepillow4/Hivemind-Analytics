@@ -3,6 +3,7 @@ import {
   useGetPolymarketMarkets,
   useGetNews,
   getGetNewsQueryKey,
+  getGetPolymarketMarketsQueryKey,
 } from "@workspace/api-client-react";
 import type { PolymarketMarket, NewsItem } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -404,10 +405,12 @@ export default function Intelligence() {
     data: newsData,
     isLoading: loadingNews,
     error: newsError,
-  } = useGetNews(undefined, {
+  } = useGetNews({ live: true }, {
     query: {
-      queryKey: getGetNewsQueryKey(),
+      queryKey: getGetNewsQueryKey({ live: true }),
       refetchInterval: 60000,
+      refetchOnMount: "always",
+      staleTime: 0,
     },
   });
 
@@ -415,10 +418,12 @@ export default function Intelligence() {
     data: polymarketData,
     isLoading: loadingMarkets,
     error: marketsError,
-  } = useGetPolymarketMarkets(undefined, {
+  } = useGetPolymarketMarkets({ live: true }, {
     query: {
-      queryKey: ["polymarket-markets"],
+      queryKey: getGetPolymarketMarketsQueryKey({ live: true }),
       refetchInterval: 60000,
+      refetchOnMount: "always",
+      staleTime: 0,
     },
   });
 
@@ -502,13 +507,13 @@ export default function Intelligence() {
       </div>
 
       {/* Error banners */}
-      {(newsError || marketsError) && !isLoading && (
+      {(!isLoading && (newsError || marketsError) && (newsItems.length === 0 || markets.length === 0)) && (
         <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
           <WifiOff className="w-4 h-4 text-red-400 shrink-0" />
           <span className="text-[11px] text-red-300">
-            {newsError && marketsError
+            {newsError && marketsError && newsItems.length === 0 && markets.length === 0
               ? "News feeds and Polymarket are currently unreachable."
-              : newsError
+              : newsError && newsItems.length === 0
                 ? "News feeds temporarily unavailable."
                 : "Polymarket data temporarily unavailable."}
             {" "}Retrying automatically.

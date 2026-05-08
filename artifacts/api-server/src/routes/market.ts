@@ -21,9 +21,12 @@ import { logger } from "../lib/logger";
 const router: IRouter = Router();
 
 router.get("/market/prices", async (req, res): Promise<void> => {
+  const live =
+    typeof req.query["live"] === "string" ? req.query["live"] === "true" : false;
+
   const [cryptos, ...stocks] = await Promise.allSettled([
-    fetchCryptoPrices(),
-    ...STOCK_SYMBOL_LIST.map((s) => fetchStockPrice(s)),
+    fetchCryptoPrices(live),
+    ...STOCK_SYMBOL_LIST.map((s) => fetchStockPrice(s, live)),
   ]);
 
   const raw: unknown[] = [];
@@ -45,6 +48,14 @@ router.get("/market/prices", async (req, res): Promise<void> => {
       return parsed.data;
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  if (live && prices.length === 0) {
+    res.status(503).json({
+      error: "Live market data unavailable",
+      message: "Could not fetch live market prices at this time.",
+    });
+    return;
+  }
 
   res.json(prices);
 });

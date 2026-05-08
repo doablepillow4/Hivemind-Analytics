@@ -8,9 +8,11 @@ const router: IRouter = Router();
 router.get("/news", async (req, res): Promise<void> => {
   const symbol =
     typeof req.query["symbol"] === "string" ? req.query["symbol"].toUpperCase() : undefined;
+  const live =
+    typeof req.query["live"] === "string" ? req.query["live"] === "true" : false;
 
   try {
-    const all = await fetchGeopoliticsNews();
+    const all = await fetchGeopoliticsNews({ live });
 
     let filtered = all;
     if (symbol) {
@@ -28,6 +30,14 @@ router.get("/news", async (req, res): Promise<void> => {
 
     res.json(GetNewsResponse.parse(filtered));
   } catch (err) {
+    if (live) {
+      logger.error({ err }, "Failed to serve live news");
+      res.status(503).json({
+        error: "Live news unavailable",
+        message: "Could not fetch live news at this time.",
+      });
+      return;
+    }
     logger.error({ err }, "Failed to serve news");
     res.json(GetNewsResponse.parse([]));
   }

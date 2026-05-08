@@ -84,8 +84,9 @@ async function fetchTag(tag: string, limit: number): Promise<PolymarketEvent[]> 
   return (await res.json()) as PolymarketEvent[];
 }
 
-export async function fetchPolymarketData(limit: number = 30) {
-  if (_cache && Date.now() < _cache.expiresAt) {
+export async function fetchPolymarketData(limit: number = 30, options?: { live?: boolean }) {
+  const live = options?.live === true;
+  if (!live && _cache && Date.now() < _cache.expiresAt) {
     return _cache.data.slice(0, limit);
   }
 
@@ -120,6 +121,10 @@ export async function fetchPolymarketData(limit: number = 30) {
   addFrom(byPolitics, limit - merged.length);
 
   if (merged.length === 0) {
+    if (!live && _cache) {
+      logger.warn("Polymarket fetch failed, returning stale cached data");
+      return _cache.data.slice(0, limit);
+    }
     throw new Error("All Polymarket tag fetches failed — no live data available");
   }
 
@@ -130,9 +135,10 @@ export async function fetchPolymarketData(limit: number = 30) {
 router.get("/polymarket/markets", async (req, res): Promise<void> => {
   const queryParsed = GetPolymarketMarketsQueryParams.safeParse(req.query);
   const limit = queryParsed.success ? queryParsed.data.limit : 20;
+  const live = typeof req.query["live"] === "string" ? req.query["live"] === "true" : false;
 
   try {
-    const markets = await fetchPolymarketData(limit);
+    const markets = await fetchPolymarketData(limit, { live });
     res.json(GetPolymarketMarketsResponse.parse(markets.slice(0, limit)));
   } catch (err) {
     logger.error({ err }, "Polymarket fetch failed — no live data available");

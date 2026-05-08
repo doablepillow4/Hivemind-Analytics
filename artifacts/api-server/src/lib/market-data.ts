@@ -35,7 +35,10 @@ export function sanitizeSparkline(values: (number | null | undefined)[]): number
   return filled;
 }
 
-export async function fetchStockPrice(symbol: string) {
+export async function fetchStockPrice(symbol: string, live = false) {
+  if (live) {
+    return _fetchStockPriceRaw(symbol);
+  }
   return getOrFetch(marketCache, `stock:price:${symbol}`, TTL.MARKET_PRICE, () =>
     _fetchStockPriceRaw(symbol),
   );
@@ -98,7 +101,10 @@ async function _fetchStockPriceRaw(symbol: string) {
   };
 }
 
-export async function fetchCryptoPrices() {
+export async function fetchCryptoPrices(live = false) {
+  if (live) {
+    return _fetchCryptoPricesRaw();
+  }
   return getOrFetch(marketCache, "crypto:prices:all", TTL.MARKET_PRICE, async () => {
     const ids = Object.values(CRYPTO_IDS)
       .map((c) => c.id)
@@ -148,6 +154,57 @@ export async function fetchCryptoPrices() {
         updatedAt: new Date().toISOString(),
       }];
     });
+  });
+}
+
+async function _fetchCryptoPricesRaw() {
+  const ids = Object.values(CRYPTO_IDS)
+    .map((c) => c.id)
+    .join(",");
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=true&price_change_percentage=24h&order=market_cap_desc`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) throw new Error(`CoinGecko error: ${res.status}`);
+  const data = (await res.json()) as Array<{
+    id: string;
+    name: string;
+    current_price: number;
+    price_change_24h: number;
+    price_change_percentage_24h: number;
+    total_volume: number;
+    market_cap: number;
+    sparkline_in_7d?: { price: number[] };
+  }>;
+
+  const byId = new Map(data.map((d) => [d.id, d]));
+
+  return Object.entries(CRYPTO_IDS).flatMap(([sym, info]) => {
+    const d = byId.get(info.id);
+    if (!d || !d.current_price) {
+      logger.warn({ sym, id: info.id }, "CoinGecko missing price for entry — skipping");
+      return [];
+    }
+    const price = safeNum(d.current_price);
+    const changePercent = safeNum(d.price_change_percentage_24h);
+    const rawSparkline = d.sparkline_in_7d?.price ?? [];
+    const sparkline =
+      rawSparkline.length >= 15
+        ? sanitizeSparkline(rawSparkline.slice(-15))
+        : [];
+    return [{
+      symbol: sym,
+      name: info.name,
+      price,
+      change: safeNum(d.price_change_24h),
+      changePercent,
+      volume: safeNum(d.total_volume),
+      marketCap: safeNum(d.market_cap),
+      type: "crypto" as const,
+      sparkline,
+      updatedAt: new Date().toISOString(),
+    }];
   });
 }
 

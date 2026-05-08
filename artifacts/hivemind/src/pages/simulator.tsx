@@ -391,7 +391,9 @@ function GeoIntelPanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Simulator() {
-  const { data: prices, isLoading: pricesLoading } = useGetMarketPrices();
+  const { data: prices, isLoading: pricesLoading } = useGetMarketPrices({ live: true }, {
+    query: { refetchOnMount: "always", staleTime: 0 },
+  });
   const runMonteCarlo = useRunMonteCarlo();
   const [activeTab, setActiveTab] = useState<"market" | "geo">("market");
 
