@@ -181,10 +181,9 @@ async function _fetchNewsRaw(): Promise<NewsItem[]> {
         const res = await fetchWithRetry(url, {
           headers: {
             ...DEFAULT_BROWSER_HEADERS,
-            // FIX: Override Accept for RSS — the DEFAULT_BROWSER_HEADERS Accept
-            // value includes "application/signed-exchange" and image types which
-            // some RSS servers reject with 406 Not Acceptable. Be explicit.
-            Accept: "application/rss+xml, application/xml, text/xml, application/atom+xml, */*;q=0.8",
+            // FIX: Explicitly request XML types. Move after spread to ensure it's not
+            // overwritten by the generic browser-like Accept header.
+            Accept: "application/rss+xml, application/xml, text/xml, application/atom+xml, */*;q=1.0",
             Referer: url,
           },
         }, 2, 12000);

@@ -12,8 +12,8 @@ const YAHOO_HEADERS = {
 };
 
 const COINGECKO_HEADERS = {
-  Accept: "application/json",
   ...DEFAULT_BROWSER_HEADERS,
+  Accept: "application/json",
 };
 
 const CRYPTO_IDS: Record<string, { id: string; symbol: string; name: string }> = {
