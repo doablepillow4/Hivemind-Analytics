@@ -27,6 +27,10 @@ const FEED_SOURCES = [
   { name: "NPR World", url: "https://feeds.npr.org/1004/rss.xml" },
   { name: "New York Times", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
   { name: "Sky News", url: "https://feeds.skynews.com/feeds/rss/world.xml" },
+  // FIX: Add Reuters as a more reliable fallback — BBC/NYT/Guardian aggressively
+  // block server-side User-Agents. Reuters RSS is consistently accessible.
+  { name: "Reuters", url: "https://feeds.reuters.com/reuters/worldNews" },
+  { name: "AP News", url: "https://feeds.apnews.com/rss/apf-topnews" },
 ];
 
 const BEARISH_KW = [
@@ -87,6 +91,30 @@ function extractValue(block: string, tag: string): string {
     : "";
 }
 
+// FIX: extractLink needs special handling — RSS <link> elements are often NOT
+// wrapped in a close tag (self-closing or followed immediately by text), so the
+// generic extractValue regex fails and returns "". This caused all URLs to be "#".
+function extractLink(block: string): string {
+  // Try standard <link>...</link> first (via extractValue)
+  const fromTag = extractValue(block, "link");
+  if (fromTag && fromTag.startsWith("http")) return fromTag;
+
+  // Atom-style <link href="..."/> or <link rel="alternate" href="..."/>
+  const hrefMatch = block.match(/<link[^>]+href=["']([^"']+)["']/i);
+  if (hrefMatch?.[1]) return hrefMatch[1];
+
+  // RSS 2.0: <link> is a bare text node between tags, no closing tag on same line
+  // Matches <link>https://...</link> or <link>https://...  (with or without close)
+  const bareMatch = block.match(/<link>\s*(https?:\/\/[^\s<]+)/i);
+  if (bareMatch?.[1]) return bareMatch[1];
+
+  // Fall back to <guid> which is often the URL in RSS 2.0
+  const guid = extractValue(block, "guid");
+  if (guid && guid.startsWith("http")) return guid;
+
+  return "#";
+}
+
 function parseRSS(xml: string, sourceName: string): NewsItem[] {
   const items: NewsItem[] = [];
   const itemRe = /<item[^>]*>([\s\S]*?)<\/item>/g;
@@ -94,7 +122,9 @@ function parseRSS(xml: string, sourceName: string): NewsItem[] {
   while ((match = itemRe.exec(xml)) !== null && items.length < 7) {
     const block = match[1];
     const title = extractValue(block, "title");
-    const url = extractValue(block, "link") || extractValue(block, "guid");
+    // FIX: Use dedicated extractLink instead of extractValue("link") which fails
+    // on bare RSS <link> elements and Atom href attributes
+    const url = extractLink(block);
     const pubDate =
       extractValue(block, "pubDate") ||
       extractValue(block, "dc:date") ||
@@ -122,7 +152,7 @@ function parseRSS(xml: string, sourceName: string): NewsItem[] {
       id: `${sourceName.toLowerCase().replace(/\s/g, "-")}-${idKey}`,
       title,
       description: desc,
-      url: url || "#",
+      url,
       source: sourceName,
       publishedAt,
       sentiment,
@@ -151,14 +181,25 @@ async function _fetchNewsRaw(): Promise<NewsItem[]> {
         const res = await fetchWithRetry(url, {
           headers: {
             ...DEFAULT_BROWSER_HEADERS,
-            Accept: "application/rss+xml, application/xml, text/xml, */*",
+            // FIX: Override Accept for RSS — the DEFAULT_BROWSER_HEADERS Accept
+            // value includes "application/signed-exchange" and image types which
+            // some RSS servers reject with 406 Not Acceptable. Be explicit.
+            Accept: "application/rss+xml, application/xml, text/xml, application/atom+xml, */*;q=0.8",
             Referer: url,
           },
-        }, 3, 15000);
+        }, 2, 12000);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        all.push(...parseRSS(text, name));
-        logger.info({ source: name, itemCount: all.length }, "Fetched news feed");
+        // FIX: Guard against servers returning HTML error pages instead of XML
+        // (e.g. Cloudflare challenge pages). If the body doesn't contain <item>
+        // or <entry>, it's not RSS and will produce zero items silently.
+        if (!text.includes("<item") && !text.includes("<entry")) {
+          logger.warn({ source: name, bodyStart: text.slice(0, 120) }, "News feed returned non-RSS body (HTML block page?)");
+          return;
+        }
+        const parsed = parseRSS(text, name);
+        all.push(...parsed);
+        logger.info({ source: name, count: parsed.length }, "Fetched news feed");
       } catch (err) {
         logger.warn({ source: name, err }, "News feed fetch failed");
       }
@@ -168,7 +209,7 @@ async function _fetchNewsRaw(): Promise<NewsItem[]> {
   all.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   if (all.length === 0) {
-    logger.warn("All news feeds failed");
+    logger.warn("All news feeds failed — all sources either blocked or returned non-RSS");
     return [];
   }
 
@@ -222,17 +263,13 @@ export async function fetchGeopoliticsNews(options?: { live?: boolean }): Promis
       _staleCache = items;
       return items;
     }
-    if (live && _staleCache) {
-      logger.warn("Live news fetch failed, returning stale cache");
+    if (_staleCache) {
+      logger.warn("News fetch returned empty — returning stale cache");
       _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
       return _staleCache;
     }
     if (live) {
-      throw new Error("No live news items returned");
-    }
-    if (_staleCache) {
-      _cache = { items: _staleCache, expiry: Date.now() + 60_000 };
-      return _staleCache;
+      throw new Error("No news items returned and no stale cache available");
     }
     return [];
   } catch (err) {
