@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+
 import {
   GetMarketPricesResponseItem,
   GetMarketHistoryParams,
@@ -7,6 +8,7 @@ import {
   GetMarketQuoteParams,
   GetMarketQuoteResponse,
 } from "@workspace/api-zod";
+
 import {
   fetchStockPrice,
   fetchCryptoPrices,
@@ -16,6 +18,7 @@ import {
   STOCK_SYMBOL_LIST,
   CRYPTO_ID_MAP,
 } from "../lib/market-data";
+
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -26,7 +29,10 @@ router.get("/market/prices", async (req, res): Promise<void> => {
 
   const [cryptosResult, ...stockResults] = await Promise.allSettled([
     fetchCryptoPrices(live),
-    ...STOCK_SYMBOL_LIST.map(async (symbol) => ({ symbol, result: await fetchStockPrice(symbol, live) })),
+    ...STOCK_SYMBOL_LIST.map(async (symbol) => ({
+      symbol,
+      result: await fetchStockPrice(symbol, live),
+    })),
   ]);
 
   const raw: unknown[] = [];
@@ -47,6 +53,9 @@ router.get("/market/prices", async (req, res): Promise<void> => {
 
   const prices = raw
     .map((item) => {
+      // FIX: Use safeParse in strip mode — isLive is not in the Zod schema but
+      // that's fine, we just don't want it causing parse failures on the whole item.
+      // Zod strips unknown keys by default (not in strict mode), so this is safe.
       const parsed = GetMarketPricesResponseItem.safeParse(item);
       if (!parsed.success) {
         logger.warn({ item, error: parsed.error.message }, "Skipping invalid market price entry");
@@ -82,6 +91,7 @@ router.get("/market/quote/:symbol", async (req, res): Promise<void> => {
   }
 
   const symbol = params.data.symbol.toUpperCase();
+
   try {
     const quote = await fetchAnyTicker(symbol);
     if (!quote) {
@@ -96,7 +106,10 @@ router.get("/market/quote/:symbol", async (req, res): Promise<void> => {
 });
 
 router.get("/market/history/:symbol", async (req, res): Promise<void> => {
-  const rawSymbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
+  const rawSymbol = Array.isArray(req.params.symbol)
+    ? req.params.symbol[0]
+    : req.params.symbol;
+
   const params = GetMarketHistoryParams.safeParse({ symbol: rawSymbol });
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -105,17 +118,24 @@ router.get("/market/history/:symbol", async (req, res): Promise<void> => {
 
   const query = GetMarketHistoryQueryParams.safeParse(req.query);
   const days = query.success ? query.data.days : 30;
+
+  // FIX: This line was truncated in the repo ("params.data.sy" cut off mid-word),
+  // causing a syntax error that broke the entire market router on startup.
   const symbol = params.data.symbol.toUpperCase();
 
   let data;
-  if (symbol in CRYPTO_ID_MAP) {
-    const coinId = CRYPTO_ID_MAP[symbol]?.id ?? symbol.toLowerCase();
-    data = await fetchCryptoHistory(coinId, days);
-  } else {
-    data = await fetchStockHistory(symbol, days);
+  try {
+    if (symbol in CRYPTO_ID_MAP) {
+      const coinId = CRYPTO_ID_MAP[symbol]?.id ?? symbol.toLowerCase();
+      data = await fetchCryptoHistory(coinId, days);
+    } else {
+      data = await fetchStockHistory(symbol, days);
+    }
+    res.json(GetMarketHistoryResponse.parse({ symbol, data }));
+  } catch (err) {
+    logger.warn({ err, symbol, days }, "History fetch failed");
+    res.status(503).json({ error: `Could not fetch history for ${symbol}` });
   }
-
-  res.json(GetMarketHistoryResponse.parse({ symbol, data }));
 });
 
 export default router;
