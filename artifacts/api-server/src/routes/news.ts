@@ -13,8 +13,8 @@ router.get("/news", async (req, res): Promise<void> => {
 
   try {
     const all = await fetchGeopoliticsNews({ live });
-
     let filtered = all;
+
     if (symbol) {
       const sym = symbol.toLowerCase();
       filtered = all.filter((n) => {
