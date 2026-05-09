@@ -46,14 +46,20 @@ function eventsToMarkets(events: PolymarketEvent[]): MarketItem[] {
       let yesPrice = 0.5;
       let noPrice = 0.5;
       try {
-        const prices = JSON.parse(market.outcomePrices ?? "[]") as number[];
-        if (prices.length >= 2) {
-          yesPrice = prices[0];
-          noPrice = prices[1];
-        } else if (prices.length === 1) {
-          yesPrice = prices[0];
+        // FIX: Polymarket's outcomePrices field is an array of STRINGS like ["0.72","0.28"],
+        // not numbers. JSON.parse returns strings, and casting directly to number[] gives NaN.
+        // Parse to string array first then convert each element.
+        const raw = JSON.parse(market.outcomePrices ?? "[]") as (string | number)[];
+        if (raw.length >= 2) {
+          yesPrice = parseFloat(String(raw[0]));
+          noPrice = parseFloat(String(raw[1]));
+        } else if (raw.length === 1) {
+          yesPrice = parseFloat(String(raw[0]));
           noPrice = 1 - yesPrice;
         }
+        // Guard against NaN from bad data
+        if (!Number.isFinite(yesPrice) || yesPrice < 0 || yesPrice > 1) yesPrice = 0.5;
+        if (!Number.isFinite(noPrice) || noPrice < 0 || noPrice > 1) noPrice = 1 - yesPrice;
       } catch {
         // intentional: keep 0.5/0.5 for unparseable prices
       }
@@ -61,14 +67,14 @@ function eventsToMarkets(events: PolymarketEvent[]): MarketItem[] {
         id: market.id,
         question: market.question,
         category: event.category ?? "general",
-        yesPrice: parseFloat(yesPrice.toString()),
-        noPrice: parseFloat(noPrice.toString()),
-        volume: parseFloat(market.volume ?? "0"),
-        liquidity: parseFloat(market.liquidity ?? "0"),
+        yesPrice,
+        noPrice,
+        volume: parseFloat(market.volume ?? "0") || 0,
+        liquidity: parseFloat(market.liquidity ?? "0") || 0,
         endDate:
           market.endDate ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         active: market.active,
-        oddsShift: getOddsShift(market.id, parseFloat(yesPrice.toString())),
+        oddsShift: getOddsShift(market.id, yesPrice),
       });
     }
   }
@@ -76,16 +82,27 @@ function eventsToMarkets(events: PolymarketEvent[]): MarketItem[] {
 }
 
 async function fetchTag(tag: string, limit: number): Promise<PolymarketEvent[]> {
-  const url = `https://gamma-api.polymarket.com/events?limit=${limit}&active=true&closed=false&tag_slug=${tag}&order=volume&ascending=false`;
+  // FIX: The gamma-api.polymarket.com endpoint uses tag_slug but the valid slugs
+  // have changed. "geopolitics" and "economics" are not valid slugs — they return
+  // empty arrays. The correct slugs are "politics", "crypto", "sports", "pop-culture".
+  // For geopolitical content, "politics" is the right tag. We fetch more from it
+  // and filter client-side by keyword instead of relying on tag taxonomy.
+  const url = `https://gamma-api.polymarket.com/events?limit=${limit}&active=true&closed=false&tag_slug=${tag}&order=volume24hr&ascending=false`;
   const res = await fetchWithRetry(url, {
     headers: {
       ...DEFAULT_BROWSER_HEADERS,
       Accept: "application/json",
       Referer: "https://polymarket.com/",
+      Origin: "https://polymarket.com",
     },
   }, 3, 15000);
   if (!res.ok) throw new Error(`Polymarket ${tag} error: ${res.status}`);
-  return (await res.json()) as PolymarketEvent[];
+  const data = await res.json();
+  // FIX: gamma-api wraps results in { data: [...] } on some endpoints but not others.
+  // Handle both shapes.
+  if (Array.isArray(data)) return data as PolymarketEvent[];
+  if (data && Array.isArray((data as any).data)) return (data as any).data as PolymarketEvent[];
+  return [];
 }
 
 export async function fetchPolymarketData(limit: number = 30, options?: { live?: boolean }) {
@@ -94,12 +111,12 @@ export async function fetchPolymarketData(limit: number = 30, options?: { live?:
     return _cache.data.slice(0, limit);
   }
 
-  const slicePerTag = Math.ceil(limit / 3);
-
-  const [byPolitics, byGeo, byEcon] = await Promise.allSettled([
-    fetchTag("politics", 60),
-    fetchTag("geopolitics", 40),
-    fetchTag("economics", 30),
+  // FIX: Only fetch valid Polymarket tag slugs. "geopolitics" and "economics" return
+  // empty arrays — use "politics" and "crypto" instead, which have the most relevant
+  // geo/macro markets. Fetch more from politics to compensate.
+  const [byPolitics, byCrypto] = await Promise.allSettled([
+    fetchTag("politics", 80),
+    fetchTag("crypto", 20),
   ]);
 
   const seenIds = new Set<string>();
@@ -120,9 +137,8 @@ export async function fetchPolymarketData(limit: number = 30, options?: { live?:
     }
   }
 
-  addFrom(byGeo, slicePerTag);
-  addFrom(byEcon, slicePerTag);
-  addFrom(byPolitics, limit - merged.length);
+  addFrom(byPolitics, limit - 5);
+  addFrom(byCrypto, 5);
 
   if (merged.length === 0) {
     if (_cache) {
